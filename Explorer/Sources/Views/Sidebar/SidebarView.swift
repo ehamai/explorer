@@ -23,23 +23,27 @@ struct SidebarView: View {
             }
 
             Section("Locations") {
-                ForEach(sidebarVM.systemLocations) { item in
+                let locations = sidebarVM.systemLocations
+                ForEach(Array(locations.indices), id: \.self) { index in
+                    let loc = locations[index]
                     SidebarRow(
-                        url: item.url,
-                        name: item.name,
-                        systemImage: systemImageForLocation(item.url),
-                        isActive: navigationVM.currentURL == item.url
+                        url: loc.url,
+                        name: loc.name,
+                        systemImage: loc.icon,
+                        isActive: navigationVM.currentURL == loc.url
                     )
                 }
             }
 
             Section("Volumes") {
-                ForEach(sidebarVM.volumes) { item in
+                let vols = sidebarVM.volumes
+                ForEach(Array(vols.indices), id: \.self) { index in
+                    let vol = vols[index]
                     SidebarRow(
-                        url: item.url,
-                        name: item.name,
-                        systemImage: "externaldrive",
-                        isActive: navigationVM.currentURL == item.url
+                        url: vol.url,
+                        name: vol.name,
+                        systemImage: vol.icon,
+                        isActive: navigationVM.currentURL == vol.url
                     )
                 }
             }
@@ -69,15 +73,7 @@ struct SidebarView: View {
         }
     }
 
-    private func systemImageForLocation(_ url: URL) -> String {
-        let path = url.path
-        if path.hasSuffix("/Desktop") { return "menubar.dock.rectangle" }
-        if path.hasSuffix("/Documents") { return "doc.text" }
-        if path.hasSuffix("/Downloads") { return "arrow.down.circle" }
-        if path == FileManager.default.homeDirectoryForCurrentUser.path { return "house" }
-        if path.hasSuffix("/Applications") { return "square.grid.2x2" }
-        return "folder"
-    }
+
 }
 
 // MARK: - Sidebar Row

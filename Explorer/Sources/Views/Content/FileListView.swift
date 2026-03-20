@@ -184,6 +184,6 @@ struct FileListView: View {
             return
         }
         let order: SortOrder = comparator.order == .forward ? .ascending : .descending
-        directoryVM.sort(by: FileSortDescriptor(field: field, order: order))
+        directoryVM.sortDescriptor = FileSortDescriptor(field: field, order: order)
     }
 }

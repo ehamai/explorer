@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 @main
 struct ExplorerApp: App {
@@ -7,6 +8,12 @@ struct ExplorerApp: App {
     @State private var sidebarVM = SidebarViewModel()
     @State private var clipboardManager = ClipboardManager()
     @State private var favoritesManager = FavoritesManager()
+
+    init() {
+        // Required for SPM executables to appear as a proper GUI app
+        NSApplication.shared.setActivationPolicy(.regular)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+    }
 
     var body: some Scene {
         WindowGroup {

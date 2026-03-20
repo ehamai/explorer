@@ -5,26 +5,28 @@ struct PathBarView: View {
     @Environment(NavigationViewModel.self) private var navigationVM
 
     var body: some View {
+        let components = navigationVM.pathComponents
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 2) {
-                ForEach(Array(navigationVM.pathComponents.enumerated()), id: \.offset) { index, component in
+                ForEach(Array(components.indices), id: \.self) { index in
+                    let comp = components[index]
+                    let isLast = index == components.count - 1
+
                     if index > 0 {
                         Image(systemName: "chevron.right")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
 
-                    let isLast = index == navigationVM.pathComponents.count - 1
-
                     Button {
-                        navigationVM.navigate(to: component.url)
+                        navigationVM.navigate(to: comp.url)
                     } label: {
                         HStack(spacing: 4) {
-                            Image(nsImage: NSWorkspace.shared.icon(forFile: component.url.path))
+                            Image(nsImage: NSWorkspace.shared.icon(forFile: comp.url.path))
                                 .resizable()
                                 .frame(width: 14, height: 14)
 
-                            Text(displayName(for: component.url))
+                            Text(displayName(comp.name, url: comp.url))
                                 .font(.callout)
                                 .fontWeight(isLast ? .semibold : .regular)
                                 .foregroundStyle(isLast ? .primary : .secondary)
@@ -52,8 +54,7 @@ struct PathBarView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func displayName(for url: URL) -> String {
-        let name = url.lastPathComponent
+    private func displayName(_ name: String, url: URL) -> String {
         if name == "/" || name.isEmpty {
             return volumeName(for: url)
         }
