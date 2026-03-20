@@ -106,6 +106,13 @@ struct ExplorerApp: App {
                 }
                 .keyboardShortcut(.delete, modifiers: .command)
                 .disabled(directoryVM.selectedURLs.isEmpty)
+
+                Divider()
+
+                Button("Properties") {
+                    directoryVM.showInspector.toggle()
+                }
+                .keyboardShortcut("i", modifiers: .command)
             }
         }
     }

@@ -11,6 +11,7 @@ struct FileListView: View {
     @State private var itemToRename: FileItem?
     @State private var renameName = ""
     @State private var showRenameAlert = false
+    @State private var doubleClickMonitor: Any?
 
     var body: some View {
         @Bindable var directoryVM = directoryVM
@@ -23,11 +24,6 @@ struct FileListView: View {
                         .lineLimit(1)
                 }
                 .opacity(isCut(item) ? 0.4 : 1.0)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-                .onTapGesture(count: 2) {
-                    openItem(item)
-                }
             }
             .width(min: 180, ideal: 300)
 
@@ -67,6 +63,22 @@ struct FileListView: View {
         .onKeyPress(.return) {
             openSelectedItems()
             return .handled
+        }
+        .onAppear {
+            doubleClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+                if event.clickCount == 2 {
+                    DispatchQueue.main.async {
+                        openSelectedItems()
+                    }
+                }
+                return event
+            }
+        }
+        .onDisappear {
+            if let monitor = doubleClickMonitor {
+                NSEvent.removeMonitor(monitor)
+                doubleClickMonitor = nil
+            }
         }
         .alert("Rename", isPresented: $showRenameAlert) {
             TextField("Name", text: $renameName)
@@ -108,14 +120,24 @@ struct FileListView: View {
 
         Divider()
 
-        Button("Rename") {
+        Button("Rename…") {
             itemToRename = item
             renameName = item.name
             showRenameAlert = true
         }
 
         Button("Pin to Favorites") {
-            favoritesManager.addFavorite(url: item.url)
+            if item.isDirectory {
+                favoritesManager.addFavorite(url: item.url)
+            }
+        }
+        .disabled(!item.isDirectory)
+
+        Divider()
+
+        Button("Properties") {
+            directoryVM.selectedItems = [item.id]
+            directoryVM.showInspector = true
         }
 
         Divider()

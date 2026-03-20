@@ -10,6 +10,8 @@ struct IconGridView: View {
     @State private var itemToRename: FileItem?
     @State private var renameName = ""
     @State private var showRenameAlert = false
+    @State private var lastClickItem: FileItem.ID?
+    @State private var lastClickTime: Date?
 
     private let columns = [GridItem(.adaptive(minimum: 100), spacing: 16)]
 
@@ -22,11 +24,8 @@ struct IconGridView: View {
                         isSelected: directoryVM.selectedItems.contains(item.id),
                         isCut: isCut(item)
                     )
-                    .onTapGesture(count: 2) {
-                        openItem(item)
-                    }
-                    .onTapGesture(count: 1) {
-                        selectItem(item)
+                    .onTapGesture {
+                        handleClick(item)
                     }
                     .contextMenu {
                         fileContextMenu(for: item)
@@ -84,14 +83,24 @@ struct IconGridView: View {
 
         Divider()
 
-        Button("Rename") {
+        Button("Rename…") {
             itemToRename = item
             renameName = item.name
             showRenameAlert = true
         }
 
         Button("Pin to Favorites") {
-            favoritesManager.addFavorite(url: item.url)
+            if item.isDirectory {
+                favoritesManager.addFavorite(url: item.url)
+            }
+        }
+        .disabled(!item.isDirectory)
+
+        Divider()
+
+        Button("Properties") {
+            directoryVM.selectedItems = [item.id]
+            directoryVM.showInspector = true
         }
 
         Divider()
@@ -103,7 +112,22 @@ struct IconGridView: View {
 
     // MARK: - Actions
 
-    private func selectItem(_ item: FileItem) {
+    private func handleClick(_ item: FileItem) {
+        let now = Date()
+
+        // Detect double-click: same item clicked within 0.4s
+        if let lastItem = lastClickItem, let lastTime = lastClickTime,
+           lastItem == item.id, now.timeIntervalSince(lastTime) < 0.4 {
+            openItem(item)
+            lastClickItem = nil
+            lastClickTime = nil
+            return
+        }
+
+        // Single click — select
+        lastClickItem = item.id
+        lastClickTime = now
+
         if NSEvent.modifierFlags.contains(.command) {
             if directoryVM.selectedItems.contains(item.id) {
                 directoryVM.selectedItems.remove(item.id)

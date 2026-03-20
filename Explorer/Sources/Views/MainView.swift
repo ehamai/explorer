@@ -29,6 +29,10 @@ struct MainView: View {
                     .padding(.vertical, 4)
                     .background(.bar)
             }
+            .inspector(isPresented: $directoryVM.showInspector) {
+                InspectorView()
+                    .inspectorColumnWidth(min: 220, ideal: 260, max: 360)
+            }
         }
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {

@@ -17,6 +17,7 @@ final class DirectoryViewModel {
         didSet { applyFilter() }
     }
     var isLoading: Bool = false
+    var showInspector: Bool = false
     var searchText: String = "" {
         didSet { applyFilter() }
     }
@@ -30,6 +31,12 @@ final class DirectoryViewModel {
         allItems
             .filter { selectedItems.contains($0.id) }
             .map(\.url)
+    }
+
+    /// The first selected item, used for inspector/properties panel
+    var inspectedItem: FileItem? {
+        guard let firstID = selectedItems.first else { return nil }
+        return items.first { $0.id == firstID }
     }
 
     // MARK: - Dependencies
