@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ContentAreaView: View {
     @Environment(DirectoryViewModel.self) private var directoryVM
+    @Environment(NavigationViewModel.self) private var navigationVM
+    @Environment(ClipboardManager.self) private var clipboardManager
 
     var body: some View {
         ZStack {
@@ -24,6 +26,8 @@ struct ContentAreaView: View {
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .contextMenu { backgroundContextMenu() }
             } else {
                 switch directoryVM.viewMode {
                 case .list:
@@ -34,6 +38,32 @@ struct ContentAreaView: View {
                     ColumnBrowserView()
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func backgroundContextMenu() -> some View {
+        Button("Paste") {
+            let url = navigationVM.currentURL
+            Task {
+                try? await clipboardManager.paste(to: url)
+                await directoryVM.loadDirectory(url: url)
+            }
+        }
+        .disabled(!clipboardManager.hasPendingOperation)
+
+        Divider()
+
+        Button("New Folder") {
+            let currentURL = navigationVM.currentURL
+            var folderURL = currentURL.appendingPathComponent("untitled folder")
+            var counter = 1
+            while FileManager.default.fileExists(atPath: folderURL.path) {
+                folderURL = currentURL.appendingPathComponent("untitled folder \(counter)")
+                counter += 1
+            }
+            try? FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: false)
+            Task { await directoryVM.loadDirectory(url: currentURL) }
         }
     }
 }

@@ -18,6 +18,7 @@ final class DirectoryViewModel {
     }
     var isLoading: Bool = false
     var showInspector: Bool = false
+    private(set) var loadedURL: URL?
     var searchText: String = "" {
         didSet { applyFilter() }
     }
@@ -54,6 +55,7 @@ final class DirectoryViewModel {
     /// Load directory contents from the file system service and apply current sort/filter.
     func loadDirectory(url: URL) async {
         isLoading = true
+        loadedURL = url
         selectedItems.removeAll()
 
         do {

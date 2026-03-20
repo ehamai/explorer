@@ -1,17 +1,31 @@
 import SwiftUI
 
 struct MainView: View {
-    @Environment(NavigationViewModel.self) private var navigationVM
-    @Environment(DirectoryViewModel.self) private var directoryVM
+    @Environment(TabManager.self) private var tabManager
+    @Environment(ClipboardManager.self) private var clipboardManager
 
     var body: some View {
-        @Bindable var directoryVM = directoryVM
+        if let tab = tabManager.activeTab {
+            mainContent(tab: tab)
+                .environment(tab.navigationVM)
+                .environment(tab.directoryVM)
+        }
+    }
+
+    @ViewBuilder
+    private func mainContent(tab: BrowserTab) -> some View {
+        @Bindable var directoryVM = tab.directoryVM
 
         NavigationSplitView {
             SidebarView()
                 .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 300)
         } detail: {
             VStack(spacing: 0) {
+                if tabManager.tabs.count > 1 {
+                    TabBarView()
+                    Divider()
+                }
+
                 PathBarView()
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
@@ -36,22 +50,22 @@ struct MainView: View {
         }
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
-                Button(action: { navigationVM.goBack() }) {
+                Button(action: { tab.navigationVM.goBack() }) {
                     Image(systemName: "chevron.left")
                 }
-                .disabled(!navigationVM.canGoBack)
+                .disabled(!tab.navigationVM.canGoBack)
                 .help("Back")
 
-                Button(action: { navigationVM.goForward() }) {
+                Button(action: { tab.navigationVM.goForward() }) {
                     Image(systemName: "chevron.right")
                 }
-                .disabled(!navigationVM.canGoForward)
+                .disabled(!tab.navigationVM.canGoForward)
                 .help("Forward")
 
-                Button(action: { navigationVM.goUp() }) {
+                Button(action: { tab.navigationVM.goUp() }) {
                     Image(systemName: "chevron.up")
                 }
-                .disabled(!navigationVM.canGoUp)
+                .disabled(!tab.navigationVM.canGoUp)
                 .help("Enclosing Folder")
             }
 
@@ -73,14 +87,16 @@ struct MainView: View {
                     .frame(width: 180)
             }
         }
-        .navigationTitle(navigationVM.currentURL.lastPathComponent)
-        .onChange(of: navigationVM.currentURL) { _, newURL in
-            Task {
-                await directoryVM.loadDirectory(url: newURL)
+        .navigationTitle(tab.navigationVM.currentURL.lastPathComponent)
+        .onChange(of: tab.navigationVM.currentURL) { _, newURL in
+            if tab.directoryVM.loadedURL != newURL {
+                Task { await tab.directoryVM.loadDirectory(url: newURL) }
             }
         }
         .task {
-            await directoryVM.loadDirectory(url: navigationVM.currentURL)
+            if tab.directoryVM.allItems.isEmpty {
+                await tab.directoryVM.loadDirectory(url: tab.navigationVM.currentURL)
+            }
         }
     }
 }

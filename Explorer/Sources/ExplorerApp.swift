@@ -3,14 +3,15 @@ import AppKit
 
 @main
 struct ExplorerApp: App {
-    @State private var navigationVM = NavigationViewModel()
-    @State private var directoryVM = DirectoryViewModel()
+    @State private var tabManager = TabManager()
     @State private var sidebarVM = SidebarViewModel()
     @State private var clipboardManager = ClipboardManager()
     @State private var favoritesManager = FavoritesManager()
 
+    private var activeNav: NavigationViewModel? { tabManager.activeTab?.navigationVM }
+    private var activeDir: DirectoryViewModel? { tabManager.activeTab?.directoryVM }
+
     init() {
-        // Required for SPM executables to appear as a proper GUI app
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
@@ -18,86 +19,101 @@ struct ExplorerApp: App {
     var body: some Scene {
         WindowGroup {
             MainView()
-                .environment(navigationVM)
-                .environment(directoryVM)
+                .environment(tabManager)
                 .environment(sidebarVM)
                 .environment(clipboardManager)
                 .environment(favoritesManager)
                 .frame(minWidth: 800, minHeight: 500)
         }
         .commands {
+            CommandGroup(replacing: .newItem) {
+                Button("New Tab") {
+                    tabManager.addTab()
+                }
+                .keyboardShortcut("t", modifiers: .command)
+
+                Button("Close Tab") {
+                    if tabManager.tabs.count > 1 {
+                        tabManager.closeActiveTab()
+                    } else {
+                        NSApp.keyWindow?.close()
+                    }
+                }
+                .keyboardShortcut("w", modifiers: .command)
+
+                Divider()
+
+                Button("New Folder") {
+                    createNewFolder()
+                }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+            }
+
             CommandGroup(after: .toolbar) {
                 Button("Go Back") {
-                    navigationVM.goBack()
+                    activeNav?.goBack()
                 }
                 .keyboardShortcut("[", modifiers: .command)
-                .disabled(!navigationVM.canGoBack)
+                .disabled(activeNav?.canGoBack != true)
 
                 Button("Go Forward") {
-                    navigationVM.goForward()
+                    activeNav?.goForward()
                 }
                 .keyboardShortcut("]", modifiers: .command)
-                .disabled(!navigationVM.canGoForward)
+                .disabled(activeNav?.canGoForward != true)
 
                 Button("Enclosing Folder") {
-                    navigationVM.goUp()
+                    activeNav?.goUp()
                 }
                 .keyboardShortcut(.upArrow, modifiers: .command)
-                .disabled(!navigationVM.canGoUp)
+                .disabled(activeNav?.canGoUp != true)
 
                 Divider()
 
-                Button("as List") {
-                    directoryVM.viewMode = .list
-                }
-                .keyboardShortcut("1", modifiers: .command)
+                Button("as List") { activeDir?.viewMode = .list }
+                    .keyboardShortcut("1", modifiers: .command)
 
-                Button("as Icons") {
-                    directoryVM.viewMode = .icon
-                }
-                .keyboardShortcut("2", modifiers: .command)
+                Button("as Icons") { activeDir?.viewMode = .icon }
+                    .keyboardShortcut("2", modifiers: .command)
 
-                Button("as Columns") {
-                    directoryVM.viewMode = .column
-                }
-                .keyboardShortcut("3", modifiers: .command)
+                Button("as Columns") { activeDir?.viewMode = .column }
+                    .keyboardShortcut("3", modifiers: .command)
 
                 Divider()
 
-                Button(directoryVM.showHidden ? "Hide Hidden Files" : "Show Hidden Files") {
-                    directoryVM.toggleHidden()
+                Button(activeDir?.showHidden == true ? "Hide Hidden Files" : "Show Hidden Files") {
+                    activeDir?.toggleHidden()
                 }
                 .keyboardShortcut(".", modifiers: [.command, .shift])
             }
 
             CommandGroup(replacing: .pasteboard) {
                 Button("Cut") {
-                    clipboardManager.cut(urls: directoryVM.selectedURLs)
+                    if let urls = activeDir?.selectedURLs, !urls.isEmpty {
+                        clipboardManager.cut(urls: urls)
+                    }
                 }
                 .keyboardShortcut("x", modifiers: .command)
-                .disabled(directoryVM.selectedURLs.isEmpty)
+                .disabled(activeDir?.selectedURLs.isEmpty != false)
 
                 Button("Copy") {
-                    clipboardManager.copy(urls: directoryVM.selectedURLs)
+                    if let urls = activeDir?.selectedURLs, !urls.isEmpty {
+                        clipboardManager.copy(urls: urls)
+                    }
                 }
                 .keyboardShortcut("c", modifiers: .command)
-                .disabled(directoryVM.selectedURLs.isEmpty)
+                .disabled(activeDir?.selectedURLs.isEmpty != false)
 
                 Button("Paste") {
-                    let url = navigationVM.currentURL
+                    guard let nav = activeNav, let dir = activeDir else { return }
+                    let url = nav.currentURL
                     Task {
                         try? await clipboardManager.paste(to: url)
-                        await directoryVM.loadDirectory(url: url)
+                        await dir.loadDirectory(url: url)
                     }
                 }
                 .keyboardShortcut("v", modifiers: .command)
-            }
-
-            CommandGroup(replacing: .newItem) {
-                Button("New Folder") {
-                    createNewFolder()
-                }
-                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .disabled(!clipboardManager.hasPendingOperation)
             }
 
             CommandGroup(after: .sidebar) {
@@ -105,12 +121,12 @@ struct ExplorerApp: App {
                     moveSelectionToTrash()
                 }
                 .keyboardShortcut(.delete, modifiers: .command)
-                .disabled(directoryVM.selectedURLs.isEmpty)
+                .disabled(activeDir?.selectedURLs.isEmpty != false)
 
                 Divider()
 
                 Button("Properties") {
-                    directoryVM.showInspector.toggle()
+                    activeDir?.showInspector.toggle()
                 }
                 .keyboardShortcut("i", modifiers: .command)
             }
@@ -118,7 +134,8 @@ struct ExplorerApp: App {
     }
 
     private func createNewFolder() {
-        let currentURL = navigationVM.currentURL
+        guard let nav = activeNav, let dir = activeDir else { return }
+        let currentURL = nav.currentURL
         var folderURL = currentURL.appendingPathComponent("untitled folder")
         var counter = 1
         while FileManager.default.fileExists(atPath: folderURL.path) {
@@ -126,14 +143,15 @@ struct ExplorerApp: App {
             counter += 1
         }
         try? FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: false)
-        Task { await directoryVM.loadDirectory(url: currentURL) }
+        Task { await dir.loadDirectory(url: currentURL) }
     }
 
     private func moveSelectionToTrash() {
-        for url in directoryVM.selectedURLs {
+        guard let nav = activeNav, let dir = activeDir else { return }
+        for url in dir.selectedURLs {
             try? FileManager.default.trashItem(at: url, resultingItemURL: nil)
         }
-        let currentURL = navigationVM.currentURL
-        Task { await directoryVM.loadDirectory(url: currentURL) }
+        let currentURL = nav.currentURL
+        Task { await dir.loadDirectory(url: currentURL) }
     }
 }
