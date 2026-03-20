@@ -6,7 +6,7 @@ struct IconGridView: View {
     @Environment(NavigationViewModel.self) private var navigationVM
     @Environment(ClipboardManager.self) private var clipboardManager
     @Environment(FavoritesManager.self) private var favoritesManager
-    @Environment(TabManager.self) private var tabManager
+    @Environment(SplitScreenManager.self) private var splitManager
 
     @State private var itemToRename: FileItem?
     @State private var renameName = ""
@@ -199,7 +199,7 @@ struct IconGridView: View {
         Task {
             let sourceDir = try? await clipboardManager.paste(to: url)
             await directoryVM.loadDirectory(url: url)
-            if let sourceDir { await tabManager.reloadTabs(showing: sourceDir) }
+            if let sourceDir { await splitManager.reloadAllPanes(showing: sourceDir) }
         }
     }
 }

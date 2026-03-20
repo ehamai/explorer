@@ -3,13 +3,17 @@ import AppKit
 
 @main
 struct ExplorerApp: App {
-    @State private var tabManager = TabManager()
+    @State private var splitManager = SplitScreenManager()
     @State private var sidebarVM = SidebarViewModel()
     @State private var clipboardManager = ClipboardManager()
     @State private var favoritesManager = FavoritesManager()
 
-    private var activeNav: NavigationViewModel? { tabManager.activeTab?.navigationVM }
-    private var activeDir: DirectoryViewModel? { tabManager.activeTab?.directoryVM }
+    private var activeNav: NavigationViewModel? {
+        splitManager.activeTabManager.activeTab?.navigationVM
+    }
+    private var activeDir: DirectoryViewModel? {
+        splitManager.activeTabManager.activeTab?.directoryVM
+    }
 
     init() {
         NSApplication.shared.setActivationPolicy(.regular)
@@ -19,7 +23,7 @@ struct ExplorerApp: App {
     var body: some Scene {
         WindowGroup {
             MainView()
-                .environment(tabManager)
+                .environment(splitManager)
                 .environment(sidebarVM)
                 .environment(clipboardManager)
                 .environment(favoritesManager)
@@ -28,13 +32,14 @@ struct ExplorerApp: App {
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("New Tab") {
-                    tabManager.addTab()
+                    splitManager.activeTabManager.addTab()
                 }
                 .keyboardShortcut("t", modifiers: .command)
 
                 Button("Close Tab") {
-                    if tabManager.tabs.count > 1 {
-                        tabManager.closeActiveTab()
+                    let tm = splitManager.activeTabManager
+                    if tm.tabs.count > 1 {
+                        tm.closeActiveTab()
                     } else {
                         NSApp.keyWindow?.close()
                     }
@@ -47,6 +52,13 @@ struct ExplorerApp: App {
                     createNewFolder()
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
+
+                Divider()
+
+                Button(splitManager.isSplitScreen ? "Close Split View" : "Split View") {
+                    splitManager.toggle()
+                }
+                .keyboardShortcut("\\", modifiers: .control)
             }
 
             CommandGroup(after: .toolbar) {
@@ -110,9 +122,8 @@ struct ExplorerApp: App {
                     Task {
                         let sourceDir = try? await clipboardManager.paste(to: url)
                         await dir.loadDirectory(url: url)
-                        // Refresh source tab if it was a cut (file moved away)
                         if let sourceDir {
-                            await tabManager.reloadTabs(showing: sourceDir)
+                            await splitManager.reloadAllPanes(showing: sourceDir)
                         }
                     }
                 }

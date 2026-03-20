@@ -4,7 +4,7 @@ struct ContentAreaView: View {
     @Environment(DirectoryViewModel.self) private var directoryVM
     @Environment(NavigationViewModel.self) private var navigationVM
     @Environment(ClipboardManager.self) private var clipboardManager
-    @Environment(TabManager.self) private var tabManager
+    @Environment(SplitScreenManager.self) private var splitManager
 
     var body: some View {
         ZStack {
@@ -49,7 +49,7 @@ struct ContentAreaView: View {
             Task {
                 let sourceDir = try? await clipboardManager.paste(to: url)
                 await directoryVM.loadDirectory(url: url)
-                if let sourceDir { await tabManager.reloadTabs(showing: sourceDir) }
+                if let sourceDir { await splitManager.reloadAllPanes(showing: sourceDir) }
             }
         }
         .disabled(!clipboardManager.hasPendingOperation)
