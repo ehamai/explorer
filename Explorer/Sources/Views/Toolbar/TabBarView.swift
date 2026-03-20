@@ -14,7 +14,7 @@ struct TabBarView: View {
             }
         }
         .padding(.horizontal, 6)
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
         .background(.bar)
     }
 }
@@ -65,7 +65,7 @@ private struct TabItemView: View {
             // Balance close button width
             Color.clear.frame(width: 24)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 3)
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 16)

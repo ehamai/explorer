@@ -4,6 +4,7 @@ struct ContentAreaView: View {
     @Environment(DirectoryViewModel.self) private var directoryVM
     @Environment(NavigationViewModel.self) private var navigationVM
     @Environment(ClipboardManager.self) private var clipboardManager
+    @Environment(TabManager.self) private var tabManager
 
     var body: some View {
         ZStack {
@@ -46,8 +47,9 @@ struct ContentAreaView: View {
         Button("Paste") {
             let url = navigationVM.currentURL
             Task {
-                try? await clipboardManager.paste(to: url)
+                let sourceDir = try? await clipboardManager.paste(to: url)
                 await directoryVM.loadDirectory(url: url)
+                if let sourceDir { await tabManager.reloadTabs(showing: sourceDir) }
             }
         }
         .disabled(!clipboardManager.hasPendingOperation)

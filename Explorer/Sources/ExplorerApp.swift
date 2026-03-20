@@ -108,8 +108,12 @@ struct ExplorerApp: App {
                     guard let nav = activeNav, let dir = activeDir else { return }
                     let url = nav.currentURL
                     Task {
-                        try? await clipboardManager.paste(to: url)
+                        let sourceDir = try? await clipboardManager.paste(to: url)
                         await dir.loadDirectory(url: url)
+                        // Refresh source tab if it was a cut (file moved away)
+                        if let sourceDir {
+                            await tabManager.reloadTabs(showing: sourceDir)
+                        }
                     }
                 }
                 .keyboardShortcut("v", modifiers: .command)

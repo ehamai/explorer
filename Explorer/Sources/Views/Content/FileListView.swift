@@ -6,6 +6,7 @@ struct FileListView: View {
     @Environment(NavigationViewModel.self) private var navigationVM
     @Environment(ClipboardManager.self) private var clipboardManager
     @Environment(FavoritesManager.self) private var favoritesManager
+    @Environment(TabManager.self) private var tabManager
 
     @State private var itemToRename: FileItem?
     @State private var renameName = ""
@@ -60,13 +61,7 @@ struct FileListView: View {
             return .handled
         }
         .contextMenu {
-            Button("Paste") {
-                let url = navigationVM.currentURL
-                Task {
-                    try? await clipboardManager.paste(to: url)
-                    await directoryVM.loadDirectory(url: url)
-                }
-            }
+            Button("Paste") { performPaste() }
             .disabled(!clipboardManager.hasPendingOperation)
 
             Divider()
@@ -112,14 +107,8 @@ struct FileListView: View {
         Button("Copy") {
             clipboardManager.copy(urls: selectedOrSingle(item))
         }
-        Button("Paste") {
-            let url = navigationVM.currentURL
-            Task {
-                try? await clipboardManager.paste(to: url)
-                await directoryVM.loadDirectory(url: url)
-            }
-        }
-        .disabled(clipboardManager.sourceURLs.isEmpty)
+        Button("Paste") { performPaste() }
+        .disabled(!clipboardManager.hasPendingOperation)
 
         Divider()
 
@@ -192,5 +181,14 @@ struct FileListView: View {
         }
         let currentURL = navigationVM.currentURL
         Task { await directoryVM.loadDirectory(url: currentURL) }
+    }
+
+    private func performPaste() {
+        let url = navigationVM.currentURL
+        Task {
+            let sourceDir = try? await clipboardManager.paste(to: url)
+            await directoryVM.loadDirectory(url: url)
+            if let sourceDir { await tabManager.reloadTabs(showing: sourceDir) }
+        }
     }
 }

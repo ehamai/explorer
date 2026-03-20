@@ -57,4 +57,11 @@ final class TabManager {
     func closeActiveTab() {
         closeTab(id: activeTabID)
     }
+
+    /// Reload any tabs that are currently showing the given directory
+    func reloadTabs(showing url: URL) async {
+        for tab in tabs where tab.navigationVM.currentURL == url {
+            await tab.directoryVM.loadDirectory(url: url)
+        }
+    }
 }
