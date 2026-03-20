@@ -77,7 +77,6 @@ private struct ColumnBrowserView: View {
     @Environment(NavigationViewModel.self) private var navigationVM
     @Environment(ClipboardManager.self) private var clipboardManager
     @Environment(FavoritesManager.self) private var favoritesManager
-    @State private var doubleClickMonitor: Any?
 
     var body: some View {
         @Bindable var directoryVM = directoryVM
@@ -120,20 +119,6 @@ private struct ColumnBrowserView: View {
             }
         }
         .listStyle(.plain)
-        .onAppear {
-            doubleClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
-                if event.clickCount == 2 {
-                    DispatchQueue.main.async { openSelected() }
-                }
-                return event
-            }
-        }
-        .onDisappear {
-            if let monitor = doubleClickMonitor {
-                NSEvent.removeMonitor(monitor)
-                doubleClickMonitor = nil
-            }
-        }
     }
 
     private func isCut(_ item: FileItem) -> Bool {
@@ -146,10 +131,5 @@ private struct ColumnBrowserView: View {
         } else {
             NSWorkspace.shared.open(item.url)
         }
-    }
-
-    private func openSelected() {
-        let selected = directoryVM.items.filter { directoryVM.selectedItems.contains($0.id) }
-        for item in selected { open(item) }
     }
 }

@@ -7,17 +7,15 @@ struct FileListView: View {
     @Environment(ClipboardManager.self) private var clipboardManager
     @Environment(FavoritesManager.self) private var favoritesManager
 
-    @State private var sortOrder = [KeyPathComparator(\FileItem.name)]
     @State private var itemToRename: FileItem?
     @State private var renameName = ""
     @State private var showRenameAlert = false
-    @State private var doubleClickMonitor: Any?
 
     var body: some View {
         @Bindable var directoryVM = directoryVM
 
-        Table(of: FileItem.self, selection: $directoryVM.selectedItems, sortOrder: $sortOrder) {
-            TableColumn("Name", value: \.name) { item in
+        Table(of: FileItem.self, selection: $directoryVM.selectedItems) {
+            TableColumn("Name") { (item: FileItem) in
                 HStack(spacing: 6) {
                     FileIconView(item: item, size: 16)
                     Text(item.name)
@@ -27,14 +25,14 @@ struct FileListView: View {
             }
             .width(min: 180, ideal: 300)
 
-            TableColumn("Date Modified", value: \.dateModified) { item in
+            TableColumn("Date Modified") { (item: FileItem) in
                 Text(FormatHelpers.formatDate(item.dateModified))
                     .foregroundStyle(.secondary)
                     .opacity(isCut(item) ? 0.4 : 1.0)
             }
             .width(min: 120, ideal: 160)
 
-            TableColumn("Size", value: \.size) { item in
+            TableColumn("Size") { (item: FileItem) in
                 Text(item.isDirectory ? "--" : FormatHelpers.formatFileSize(item.size))
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
@@ -42,7 +40,7 @@ struct FileListView: View {
             }
             .width(min: 70, ideal: 90)
 
-            TableColumn("Kind", value: \.kind) { item in
+            TableColumn("Kind") { (item: FileItem) in
                 Text(item.kind)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -57,28 +55,9 @@ struct FileListView: View {
                     }
             }
         }
-        .onChange(of: sortOrder) { _, newOrder in
-            applySort(newOrder)
-        }
         .onKeyPress(.return) {
             openSelectedItems()
             return .handled
-        }
-        .onAppear {
-            doubleClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
-                if event.clickCount == 2 {
-                    DispatchQueue.main.async {
-                        openSelectedItems()
-                    }
-                }
-                return event
-            }
-        }
-        .onDisappear {
-            if let monitor = doubleClickMonitor {
-                NSEvent.removeMonitor(monitor)
-                doubleClickMonitor = nil
-            }
         }
         .contextMenu {
             Button("Paste") {
@@ -213,23 +192,5 @@ struct FileListView: View {
         }
         let currentURL = navigationVM.currentURL
         Task { await directoryVM.loadDirectory(url: currentURL) }
-    }
-
-    private func applySort(_ comparators: [KeyPathComparator<FileItem>]) {
-        guard let comparator = comparators.first else { return }
-        let field: SortField
-        if comparator.keyPath == \FileItem.name {
-            field = .name
-        } else if comparator.keyPath == \FileItem.dateModified {
-            field = .dateModified
-        } else if comparator.keyPath == \FileItem.size {
-            field = .size
-        } else if comparator.keyPath == \FileItem.kind {
-            field = .kind
-        } else {
-            return
-        }
-        let order: SortOrder = comparator.order == .forward ? .ascending : .descending
-        directoryVM.sortDescriptor = FileSortDescriptor(field: field, order: order)
     }
 }

@@ -1,8 +1,10 @@
 import SwiftUI
+import AppKit
 
 struct MainView: View {
     @Environment(TabManager.self) private var tabManager
     @Environment(ClipboardManager.self) private var clipboardManager
+    @State private var doubleClickMonitor: Any?
 
     var body: some View {
         if let tab = tabManager.activeTab {
@@ -97,6 +99,40 @@ struct MainView: View {
             if tab.directoryVM.allItems.isEmpty {
                 await tab.directoryVM.loadDirectory(url: tab.navigationVM.currentURL)
             }
+        }
+        .onAppear { installDoubleClickMonitor() }
+        .onDisappear { removeDoubleClickMonitor() }
+    }
+
+    // Centralized double-click handler — reads from TabManager dynamically
+    // so it always operates on the active tab regardless of tab switches.
+    private func installDoubleClickMonitor() {
+        guard doubleClickMonitor == nil else { return }
+        let tm = tabManager
+        doubleClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+            if event.clickCount == 2 {
+                DispatchQueue.main.async {
+                    guard let tab = tm.activeTab else { return }
+                    let selected = tab.directoryVM.items.filter {
+                        tab.directoryVM.selectedItems.contains($0.id)
+                    }
+                    for item in selected {
+                        if item.isDirectory {
+                            tab.navigationVM.navigate(to: item.url)
+                        } else {
+                            NSWorkspace.shared.open(item.url)
+                        }
+                    }
+                }
+            }
+            return event
+        }
+    }
+
+    private func removeDoubleClickMonitor() {
+        if let monitor = doubleClickMonitor {
+            NSEvent.removeMonitor(monitor)
+            doubleClickMonitor = nil
         }
     }
 }

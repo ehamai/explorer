@@ -5,22 +5,16 @@ struct TabBarView: View {
     @Environment(TabManager.self) private var tabManager
 
     var body: some View {
-        HStack(spacing: 0) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 1) {
-                    ForEach(tabManager.tabs) { tab in
-                        TabItemView(
-                            tab: tab,
-                            isActive: tab.id == tabManager.activeTabID,
-                            canClose: tabManager.tabs.count > 1
-                        )
-                    }
-                }
-                .padding(.horizontal, 4)
+        HStack(spacing: 1) {
+            ForEach(tabManager.tabs) { tab in
+                TabItemView(
+                    tab: tab,
+                    isActive: tab.id == tabManager.activeTabID
+                )
             }
-            Spacer()
         }
-        .frame(height: 28)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
         .background(.bar)
     }
 }
@@ -28,47 +22,65 @@ struct TabBarView: View {
 private struct TabItemView: View {
     let tab: BrowserTab
     let isActive: Bool
-    let canClose: Bool
 
     @Environment(TabManager.self) private var tabManager
     @State private var isHovering = false
 
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "folder.fill")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-
-            Text(tab.displayName)
-                .font(.callout)
-                .lineLimit(1)
-                .frame(maxWidth: 140)
-
-            if canClose {
-                Button {
-                    tabManager.closeTab(id: tab.id)
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 14, height: 14)
-                        .contentShape(Rectangle())
+        HStack(spacing: 0) {
+            // Close button area (left, Finder-style)
+            ZStack {
+                if isHovering && tabManager.tabs.count > 1 {
+                    Button {
+                        tabManager.closeTab(id: tab.id)
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 16, height: 16)
+                            .background(
+                                Circle()
+                                    .fill(Color.primary.opacity(0.1))
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-                .opacity(isHovering || isActive ? 1 : 0)
             }
+            .frame(width: 24)
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 5) {
+                Image(systemName: "folder.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+
+                Text(tab.displayName)
+                    .font(.system(size: 12))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+
+            // Balance close button width
+            Color.clear.frame(width: 24)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 5)
-                .fill(isActive ? Color(nsColor: .controlBackgroundColor) : Color.clear)
+            RoundedRectangle(cornerRadius: 16)
+                .fill(isActive
+                      ? Color(nsColor: .controlBackgroundColor)
+                      : Color.primary.opacity(isHovering ? 0.04 : 0))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 5)
-                .strokeBorder(isActive ? Color.primary.opacity(0.1) : Color.clear, lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    isActive ? Color.primary.opacity(0.08) : Color.clear,
+                    lineWidth: 0.5
+                )
         )
-        .contentShape(Rectangle())
+        .contentShape(RoundedRectangle(cornerRadius: 16))
         .onTapGesture {
             tabManager.activeTabID = tab.id
         }
