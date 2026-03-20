@@ -1,0 +1,600 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.Explorer-arm64-apple-macosx26.0-debug.module" : {
+      "executable" : "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "fileList" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/sources",
+      "importPath" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/ExplorerApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Helpers/FormatHelpers.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Models/FileItem.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Models/SortDescriptor.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Models/ViewMode.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Services/ClipboardManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Services/DirectoryWatcher.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Services/FavoritesManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Services/FileSystemService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/ViewModels/DirectoryViewModel.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/ViewModels/NavigationViewModel.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/ViewModels/SidebarViewModel.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/Components/FileIconView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/Content/ContentAreaView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/Content/FileListView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/Content/IconGridView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/MainView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/Sidebar/SidebarView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/StatusBar/StatusBarView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/Toolbar/PathBarView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "Explorer",
+      "moduleOutputPath" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Modules/Explorer.swiftmodule",
+      "objects" : [
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/ExplorerApp.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FormatHelpers.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FileItem.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/SortDescriptor.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/ViewMode.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/ClipboardManager.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/DirectoryWatcher.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FavoritesManager.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FileSystemService.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/DirectoryViewModel.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/NavigationViewModel.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/SidebarViewModel.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FileIconView.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/ContentAreaView.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FileListView.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/IconGridView.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/MainView.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/SidebarView.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/StatusBarView.swift.o",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/PathBarView.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "Explorer_main",
+        "-swift-version",
+        "5",
+        "-I",
+        "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+        "-L",
+        "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+        "-plugin-path",
+        "/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "explorer"
+      ],
+      "outputFileMapPath" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/ExplorerApp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FormatHelpers.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FileItem.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/SortDescriptor.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/ViewMode.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/ClipboardManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/DirectoryWatcher.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FavoritesManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FileSystemService.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/DirectoryViewModel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/NavigationViewModel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/SidebarViewModel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FileIconView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/ContentAreaView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FileListView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/IconGridView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/MainView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/SidebarView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/StatusBarView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/PathBarView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Modules/Explorer.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/ehamai/git/explorer/Explorer/Sources/ExplorerApp.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Helpers/FormatHelpers.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Models/FileItem.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Models/SortDescriptor.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Models/ViewMode.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Services/ClipboardManager.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Services/DirectoryWatcher.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Services/FavoritesManager.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Services/FileSystemService.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/ViewModels/DirectoryViewModel.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/ViewModels/NavigationViewModel.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/ViewModels/SidebarViewModel.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Views/Components/FileIconView.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Views/Content/ContentAreaView.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Views/Content/FileListView.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Views/Content/IconGridView.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Views/MainView.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Views/Sidebar/SidebarView.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Views/StatusBar/StatusBarView.swift",
+        "/Users/ehamai/git/explorer/Explorer/Sources/Views/Toolbar/PathBarView.swift"
+      ],
+      "tempsPath" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "Explorer" : [
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "-module-name",
+      "Explorer",
+      "-package-name",
+      "explorer",
+      "-c",
+      "/Users/ehamai/git/explorer/Explorer/Sources/ExplorerApp.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Helpers/FormatHelpers.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Models/FileItem.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Models/SortDescriptor.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Models/ViewMode.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Services/ClipboardManager.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Services/DirectoryWatcher.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Services/FavoritesManager.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Services/FileSystemService.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/ViewModels/DirectoryViewModel.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/ViewModels/NavigationViewModel.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/ViewModels/SidebarViewModel.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Views/Components/FileIconView.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Views/Content/ContentAreaView.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Views/Content/FileListView.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Views/Content/IconGridView.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Views/MainView.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Views/Sidebar/SidebarView.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Views/StatusBar/StatusBarView.swift",
+      "/Users/ehamai/git/explorer/Explorer/Sources/Views/Toolbar/PathBarView.swift",
+      "-I",
+      "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "Explorer_main",
+      "-swift-version",
+      "5",
+      "-I",
+      "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+      "-L",
+      "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+      "-plugin-path",
+      "/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "explorer",
+      "-driver-use-frontend-path",
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "Explorer" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer-entitlement.plist" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<entitlement-plist>"
+        },
+        {
+          "kind" : "virtual",
+          "name" : "<com.apple.security.get-task-allow>"
+        }
+      ],
+      "outputFilePath" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer-entitlement.plist"
+    },
+    "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/ExplorerApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Helpers/FormatHelpers.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Models/FileItem.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Models/SortDescriptor.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Models/ViewMode.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Services/ClipboardManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Services/DirectoryWatcher.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Services/FavoritesManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Services/FileSystemService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/ViewModels/DirectoryViewModel.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/ViewModels/NavigationViewModel.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/ViewModels/SidebarViewModel.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/Components/FileIconView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/Content/ContentAreaView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/Content/FileListView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/Content/IconGridView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/MainView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/Sidebar/SidebarView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/StatusBar/StatusBarView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/Explorer/Sources/Views/Toolbar/PathBarView.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/sources"
+    },
+    "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/ClipboardManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/ContentAreaView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/DirectoryViewModel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/DirectoryWatcher.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/ExplorerApp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FavoritesManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FileIconView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FileItem.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FileListView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FileSystemService.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/FormatHelpers.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/IconGridView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/MainView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/NavigationViewModel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/PathBarView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/SidebarView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/SidebarViewModel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/SortDescriptor.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/StatusBarView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.build/ViewMode.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/Explorer.product/Objects.LinkFileList"
+    },
+    "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Library/Developer/CommandLineTools/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/ehamai/git/explorer/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+    }
+  }
+}
