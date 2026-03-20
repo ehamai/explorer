@@ -58,7 +58,7 @@ struct ExplorerApp: App {
                 Button(splitManager.isSplitScreen ? "Close Split View" : "Split View") {
                     splitManager.toggle()
                 }
-                .keyboardShortcut("\\", modifiers: .control)
+                .keyboardShortcut("\\", modifiers: .command)
             }
 
             CommandGroup(after: .toolbar) {
