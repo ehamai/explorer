@@ -4,9 +4,31 @@ import AppKit
 struct PathBarView: View {
     @Environment(NavigationViewModel.self) private var navigationVM
 
+    @State private var isEditing = false
+    @State private var editText = ""
+    @State private var showError = false
+    @FocusState private var textFieldFocused: Bool
+
     var body: some View {
+        Group {
+            if isEditing {
+                editablePathField
+            } else {
+                breadcrumbView
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onChange(of: navigationVM.currentURL) { _, _ in
+            // Exit edit mode when navigation changes
+            isEditing = false
+        }
+    }
+
+    // MARK: - Breadcrumb Mode
+
+    private var breadcrumbView: some View {
         let components = navigationVM.pathComponents
-        ScrollView(.horizontal, showsIndicators: false) {
+        return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 2) {
                 ForEach(Array(components.indices), id: \.self) { index in
                     let comp = components[index]
@@ -51,8 +73,81 @@ struct PathBarView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            enterEditMode()
+        }
     }
+
+    // MARK: - Text Field Mode
+
+    private var editablePathField: some View {
+        TextField("Enter path…", text: $editText)
+            .textFieldStyle(.roundedBorder)
+            .font(.callout.monospaced())
+            .focused($textFieldFocused)
+            .onSubmit {
+                submitPath()
+            }
+            .onExitCommand {
+                isEditing = false
+            }
+            .onAppear {
+                textFieldFocused = true
+            }
+            .onChange(of: textFieldFocused) { _, focused in
+                if !focused {
+                    isEditing = false
+                }
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 5)
+                    .strokeBorder(showError ? Color.red : Color.clear, lineWidth: 1.5)
+            )
+    }
+
+    // MARK: - Actions
+
+    private func enterEditMode() {
+        editText = navigationVM.currentURL.path
+        showError = false
+        isEditing = true
+    }
+
+    private func submitPath() {
+        var path = editText.trimmingCharacters(in: .whitespaces)
+        guard !path.isEmpty else {
+            isEditing = false
+            return
+        }
+
+        // Expand ~ to home directory
+        if path.hasPrefix("~") {
+            let home = FileManager.default.homeDirectoryForCurrentUser.path
+            path = home + path.dropFirst()
+        }
+
+        let url = URL(fileURLWithPath: path).standardizedFileURL
+        let fm = FileManager.default
+        var isDir: ObjCBool = false
+
+        if fm.fileExists(atPath: url.path, isDirectory: &isDir) {
+            if isDir.boolValue {
+                navigationVM.navigate(to: url)
+            } else {
+                NSWorkspace.shared.open(url)
+            }
+            isEditing = false
+        } else {
+            // Path doesn't exist — flash red border
+            showError = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                showError = false
+            }
+        }
+    }
+
+    // MARK: - Helpers
 
     private func displayName(_ name: String, url: URL) -> String {
         if name == "/" || name.isEmpty {

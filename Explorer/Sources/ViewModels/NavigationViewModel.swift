@@ -48,11 +48,21 @@ final class NavigationViewModel {
 
     /// Navigate to a new directory, pushing the current location onto the back stack.
     func navigate(to url: URL) {
-        let standardized = url.standardizedFileURL
-        guard standardized != currentURL else { return }
+        // Resolve the true on-disk path to fix casing on case-insensitive filesystems
+        let resolved: URL
+        if let realPath = try? FileManager.default.destinationOfSymbolicLink(atPath: url.path) {
+            resolved = URL(fileURLWithPath: realPath).standardizedFileURL
+        } else if FileManager.default.fileExists(atPath: url.path) {
+            // Use NSString's resolvingSymlinksInPath which also canonicalizes casing
+            let canonical = (url.path as NSString).resolvingSymlinksInPath
+            resolved = URL(fileURLWithPath: canonical).standardizedFileURL
+        } else {
+            resolved = url.standardizedFileURL
+        }
+        guard resolved != currentURL else { return }
         backStack.append(currentURL)
         forwardStack.removeAll()
-        currentURL = standardized
+        currentURL = resolved
     }
 
     /// Go back to the previous location.
