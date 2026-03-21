@@ -3,10 +3,18 @@ import AppKit
 
 struct SidebarView: View {
     @Environment(NavigationViewModel.self) private var navigationVM
+    @Environment(DirectoryViewModel.self) private var directoryVM
     @Environment(SidebarViewModel.self) private var sidebarVM
 
     var body: some View {
+        @Bindable var directoryVM = directoryVM
+
         List {
+            Section {
+                TextField("Search", text: $directoryVM.searchText)
+                    .textFieldStyle(.roundedBorder)
+            }
+
             Section("Favorites") {
                 ForEach(sidebarVM.favorites) { item in
                     SidebarRow(url: item.url, name: item.name, isActive: navigationVM.currentURL == item.url)

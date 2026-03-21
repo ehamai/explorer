@@ -35,8 +35,6 @@ struct ContentAreaView: View {
                     FileListView()
                 case .icon:
                     IconGridView()
-                case .column:
-                    ColumnBrowserView()
                 }
             }
         }
@@ -66,72 +64,6 @@ struct ContentAreaView: View {
             }
             try? FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: false)
             Task { await directoryVM.loadDirectory(url: currentURL) }
-        }
-    }
-}
-
-// MARK: - Column Browser View
-
-/// A single-column list view serving as the column view mode.
-/// Navigating into folders replaces the list content via the NavigationViewModel.
-private struct ColumnBrowserView: View {
-    @Environment(DirectoryViewModel.self) private var directoryVM
-    @Environment(NavigationViewModel.self) private var navigationVM
-    @Environment(ClipboardManager.self) private var clipboardManager
-    @Environment(FavoritesManager.self) private var favoritesManager
-
-    var body: some View {
-        @Bindable var directoryVM = directoryVM
-
-        List(selection: $directoryVM.selectedItems) {
-            ForEach(directoryVM.items) { item in
-                HStack(spacing: 8) {
-                    FileIconView(item: item, size: 18)
-
-                    Text(item.name)
-                        .lineLimit(1)
-
-                    Spacer()
-
-                    if item.isDirectory {
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                .opacity(isCut(item) ? 0.4 : 1.0)
-                .tag(item.id)
-                .contextMenu {
-                    Button("Open") { open(item) }
-                    Divider()
-                    Button("Cut") { clipboardManager.cut(urls: [item.url]) }
-                    Button("Copy") { clipboardManager.copy(urls: [item.url]) }
-                    Divider()
-                    Button("Properties") {
-                        directoryVM.selectedItems = [item.id]
-                        directoryVM.showInspector = true
-                    }
-                    Divider()
-                    Button("Move to Trash", role: .destructive) {
-                        try? FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
-                        let url = navigationVM.currentURL
-                        Task { await directoryVM.loadDirectory(url: url) }
-                    }
-                }
-            }
-        }
-        .listStyle(.plain)
-    }
-
-    private func isCut(_ item: FileItem) -> Bool {
-        clipboardManager.isCut && clipboardManager.sourceURLs.contains(item.url)
-    }
-
-    private func open(_ item: FileItem) {
-        if item.isDirectory {
-            navigationVM.navigate(to: item.url)
-        } else {
-            NSWorkspace.shared.open(item.url)
         }
     }
 }

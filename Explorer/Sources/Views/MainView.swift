@@ -6,15 +6,18 @@ struct MainView: View {
     @Environment(ClipboardManager.self) private var clipboardManager
     @State private var doubleClickMonitor: Any?
 
-    private var activeTab: BrowserTab? {
-        splitManager.activeTabManager.activeTab
+    private var leftTab: BrowserTab? {
+        splitManager.leftPane.tabManager.activeTab
+    }
+    private var rightTab: BrowserTab? {
+        splitManager.rightPane?.tabManager.activeTab
     }
 
     var body: some View {
         NavigationSplitView {
             SidebarView()
                 .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 300)
-                .environment(splitManager.activeTabManager)
+                .environment(splitManager.activePane.tabManager)
                 .environment(splitManager.activePane.tabManager.activeTab?.navigationVM
                              ?? NavigationViewModel())
                 .environment(splitManager.activePane.tabManager.activeTab?.directoryVM
@@ -23,7 +26,7 @@ struct MainView: View {
             detailContent
         }
         .toolbar { toolbarContent }
-        .navigationTitle(activeTab?.navigationVM.currentURL.lastPathComponent ?? "Explorer")
+        .navigationTitle(splitManager.isSplitScreen ? "" : (leftTab?.navigationVM.currentURL.lastPathComponent ?? "Explorer"))
         .onAppear { installDoubleClickMonitor() }
         .onDisappear { removeDoubleClickMonitor() }
     }
@@ -37,7 +40,8 @@ struct MainView: View {
                 PaneView(pane: splitManager.leftPane,
                          isActive: splitManager.isActive(splitManager.leftPane))
                 PaneView(pane: rightPane,
-                         isActive: splitManager.isActive(rightPane))
+                         isActive: splitManager.isActive(rightPane),
+                         isRightPane: true)
             }
         } else {
             PaneView(pane: splitManager.leftPane, isActive: true)
@@ -48,56 +52,69 @@ struct MainView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        // Left pane nav buttons
         ToolbarItemGroup(placement: .navigation) {
-            Button(action: { activeTab?.navigationVM.goBack() }) {
-                Image(systemName: "chevron.left")
-            }
-            .disabled(activeTab?.navigationVM.canGoBack != true)
-            .help("Back")
+            navButtons(for: leftTab)
 
-            Button(action: { activeTab?.navigationVM.goForward() }) {
-                Image(systemName: "chevron.right")
-            }
-            .disabled(activeTab?.navigationVM.canGoForward != true)
-            .help("Forward")
-
-            Button(action: { activeTab?.navigationVM.goUp() }) {
-                Image(systemName: "chevron.up")
-            }
-            .disabled(activeTab?.navigationVM.canGoUp != true)
-            .help("Enclosing Folder")
-        }
-
-        ToolbarItem(placement: .principal) {
-            if let tab = activeTab {
+            if let tab = leftTab {
                 @Bindable var dir = tab.directoryVM
-                Picker("View Mode", selection: $dir.viewMode) {
+                Picker("View", selection: $dir.viewMode) {
                     ForEach(ViewMode.allCases, id: \.self) { mode in
-                        Label(mode.label, systemImage: mode.systemImage)
-                            .tag(mode)
+                        Image(systemName: mode.systemImage).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 120)
-                .help("View Mode")
+                .frame(width: 80)
             }
         }
 
-        ToolbarItem(placement: .automatic) {
+        // Right pane nav buttons (right-aligned, split mode only)
+        if splitManager.isSplitScreen {
+            ToolbarItemGroup(placement: .primaryAction) {
+                navButtons(for: rightTab)
+
+                if let tab = rightTab {
+                    @Bindable var dir = tab.directoryVM
+                    Picker("View", selection: $dir.viewMode) {
+                        ForEach(ViewMode.allCases, id: \.self) { mode in
+                            Image(systemName: mode.systemImage).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 80)
+                }
+            }
+        }
+
+        // Split toggle (far right)
+        ToolbarItem(placement: .primaryAction) {
             Button(action: { splitManager.toggle() }) {
                 Image(systemName: splitManager.isSplitScreen
                       ? "rectangle" : "rectangle.split.2x1")
             }
             .help(splitManager.isSplitScreen ? "Close Split" : "Split View")
         }
+    }
 
-        ToolbarItem(placement: .automatic) {
-            if let tab = activeTab {
-                @Bindable var dir = tab.directoryVM
-                TextField("Search", text: $dir.searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 160)
+    private func navButtons(for tab: BrowserTab?) -> some View {
+        HStack(spacing: 2) {
+            Button(action: { tab?.navigationVM.goBack() }) {
+                Image(systemName: "chevron.left")
             }
+            .disabled(tab?.navigationVM.canGoBack != true)
+            .help("Back")
+
+            Button(action: { tab?.navigationVM.goForward() }) {
+                Image(systemName: "chevron.right")
+            }
+            .disabled(tab?.navigationVM.canGoForward != true)
+            .help("Forward")
+
+            Button(action: { tab?.navigationVM.goUp() }) {
+                Image(systemName: "chevron.up")
+            }
+            .disabled(tab?.navigationVM.canGoUp != true)
+            .help("Enclosing Folder")
         }
     }
 
@@ -109,8 +126,6 @@ struct MainView: View {
         doubleClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
             if event.clickCount == 2 {
                 DispatchQueue.main.async {
-                    // Check all panes for selected items (handles split-screen
-                    // where the active pane may not have updated yet on double-click)
                     let panes = [sm.leftPane] + (sm.rightPane.map { [$0] } ?? [])
                     for pane in panes {
                         guard let tab = pane.tabManager.activeTab else { continue }

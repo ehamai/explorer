@@ -88,9 +88,6 @@ struct ExplorerApp: App {
                 Button("as Icons") { activeDir?.viewMode = .icon }
                     .keyboardShortcut("2", modifiers: .command)
 
-                Button("as Columns") { activeDir?.viewMode = .column }
-                    .keyboardShortcut("3", modifiers: .command)
-
                 Divider()
 
                 Button(activeDir?.showHidden == true ? "Hide Hidden Files" : "Show Hidden Files") {

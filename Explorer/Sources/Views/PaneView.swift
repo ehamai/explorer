@@ -6,6 +6,7 @@ import AppKit
 struct PaneView: View {
     let pane: PaneState
     let isActive: Bool
+    var isRightPane: Bool = false
 
     @Environment(SplitScreenManager.self) private var splitManager
     @Environment(ClipboardManager.self) private var clipboardManager
@@ -59,9 +60,17 @@ struct PaneView: View {
                     lineWidth: 2
                 )
         )
-        .contentShape(Rectangle())
-        .onTapGesture {
-            splitManager.activate(pane: pane)
+        // Invisible overlay that captures clicks for pane focus
+        // without interfering with child view interactions
+        .overlay {
+            Color.clear
+                .contentShape(Rectangle())
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        splitManager.activate(pane: pane)
+                    }
+                )
+                .allowsHitTesting(splitManager.isSplitScreen && !isActive)
         }
         .onChange(of: tab.navigationVM.currentURL) { _, newURL in
             if tab.directoryVM.loadedURL != newURL {
