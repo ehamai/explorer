@@ -27,8 +27,9 @@ struct PaneView: View {
         VStack(spacing: 0) {
             if pane.tabManager.tabs.count > 1 {
                 TabBarView()
-                Divider()
             }
+
+            Divider()
 
             PathBarView()
                 .padding(.horizontal, 12)
@@ -36,6 +37,23 @@ struct PaneView: View {
                 .background(.bar)
 
             Divider()
+                .overlay(alignment: .bottom) {
+                    if isActive && splitManager.isSplitScreen {
+                        Rectangle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.accentColor.opacity(0.6),
+                                        Color.accentColor.opacity(0.0)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .frame(height: 6)
+                            .blur(radius: 3)
+                    }
+                }
 
             ContentAreaView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -52,13 +70,9 @@ struct PaneView: View {
                 .inspectorColumnWidth(min: 220, ideal: 260, max: 360)
         }
         .overlay(
-            RoundedRectangle(cornerRadius: 4)
-                .strokeBorder(
-                    isActive && splitManager.isSplitScreen
-                        ? Color.accentColor.opacity(0.5)
-                        : Color.clear,
-                    lineWidth: 2
-                )
+            !isActive && splitManager.isSplitScreen
+                ? Color.black.opacity(0.18)
+                : Color.clear
         )
         // Invisible overlay that captures clicks for pane focus
         // without interfering with child view interactions

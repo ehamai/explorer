@@ -41,6 +41,7 @@ final class SplitScreenManager {
             if rightPane == nil {
                 let right = PaneState()
                 rightPane = right
+                activePaneID = right.id
                 Task { await right.tabManager.activeTab?.directoryVM.loadDirectory(
                     url: right.tabManager.activeTab?.navigationVM.currentURL
                           ?? FileManager.default.homeDirectoryForCurrentUser
