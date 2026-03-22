@@ -69,13 +69,13 @@ struct PaneView: View {
             InspectorView()
                 .inspectorColumnWidth(min: 220, ideal: 260, max: 360)
         }
-        .overlay(
-            !isActive && splitManager.isSplitScreen
-                ? Color.black.opacity(0.18)
-                : Color.clear
-        )
+        .overlay {
+            if !isActive && splitManager.isSplitScreen {
+                Color.black.opacity(0.18)
+                    .allowsHitTesting(false)
+            }
+        }
         // Invisible overlay that captures clicks for pane focus
-        // without interfering with child view interactions
         .overlay {
             Color.clear
                 .contentShape(Rectangle())

@@ -11,18 +11,48 @@ struct FileListView: View {
     @State private var itemToRename: FileItem?
     @State private var renameName = ""
     @State private var showRenameAlert = false
+    @State private var dropTargetID: FileItem.ID?
+    @State private var isBackgroundDropTarget = false
 
     var body: some View {
         @Bindable var directoryVM = directoryVM
 
         Table(of: FileItem.self, selection: $directoryVM.selectedItems) {
             TableColumn("Name") { (item: FileItem) in
-                HStack(spacing: 6) {
-                    FileIconView(item: item, size: 16)
-                    Text(item.name)
-                        .lineLimit(1)
+                if item.isDirectory {
+                    HStack(spacing: 6) {
+                        FileIconView(item: item, size: 16)
+                        Text(item.name)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(dropTargetID == item.id ? Color.accentColor.opacity(0.2) : Color.clear)
+                            .padding(-4)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .strokeBorder(dropTargetID == item.id ? Color.accentColor : Color.clear, lineWidth: 2)
+                            .padding(-4)
+                    )
+                    .opacity(isCut(item) ? 0.4 : 1.0)
+                    .dropDestination(for: URL.self) { urls, _ in
+                        guard !urls.contains(item.url) else { return false }
+                        performMove(urls, to: item.url)
+                        return true
+                    } isTargeted: { isTargeted in
+                        dropTargetID = isTargeted ? item.id : nil
+                    }
+                } else {
+                    HStack(spacing: 6) {
+                        FileIconView(item: item, size: 16)
+                        Text(item.name)
+                            .lineLimit(1)
+                    }
+                    .opacity(isCut(item) ? 0.4 : 1.0)
                 }
-                .opacity(isCut(item) ? 0.4 : 1.0)
             }
             .width(min: 180, ideal: 300)
 
@@ -51,6 +81,7 @@ struct FileListView: View {
         } rows: {
             ForEach(directoryVM.items) { item in
                 TableRow(item)
+                    .draggable(item.url)
                     .contextMenu {
                         fileContextMenu(for: item)
                     }
@@ -59,6 +90,19 @@ struct FileListView: View {
         .onKeyPress(.return) {
             openSelectedItems()
             return .handled
+        }
+        .overlay {
+            if isBackgroundDropTarget {
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(Color.accentColor, lineWidth: 2)
+                    .padding(2)
+                    .allowsHitTesting(false)
+            }
+        }
+        .dropDestination(for: URL.self) { urls, _ in
+            performMoveToCurrentDir(urls)
+        } isTargeted: { targeted in
+            isBackgroundDropTarget = targeted
         }
         .contextMenu {
             Button("Paste") { performPaste() }
@@ -190,5 +234,30 @@ struct FileListView: View {
             await directoryVM.loadDirectory(url: url)
             if let sourceDir { await splitManager.reloadAllPanes(showing: sourceDir) }
         }
+    }
+
+    private func performMove(_ urls: [URL], to destination: URL) {
+        let validURLs = FileMoveService.validURLsForFolderDrop(urls, destination: destination)
+        guard !validURLs.isEmpty else { return }
+        let currentURL = navigationVM.currentURL
+        FileMoveService.moveItems(validURLs, to: destination)
+        Task {
+            await directoryVM.loadDirectory(url: currentURL)
+            await splitManager.reloadAllPanes(showing: destination)
+        }
+    }
+
+    private func performMoveToCurrentDir(_ urls: [URL]) -> Bool {
+        let destination = navigationVM.currentURL
+        let validURLs = FileMoveService.validURLsForBackgroundDrop(urls, destination: destination)
+        guard !validURLs.isEmpty else { return false }
+        let result = FileMoveService.moveItems(validURLs, to: destination)
+        Task {
+            await directoryVM.loadDirectory(url: destination)
+            for dir in result.sourceDirs {
+                await splitManager.reloadAllPanes(showing: dir)
+            }
+        }
+        return true
     }
 }

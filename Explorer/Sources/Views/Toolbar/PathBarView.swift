@@ -3,10 +3,12 @@ import AppKit
 
 struct PathBarView: View {
     @Environment(NavigationViewModel.self) private var navigationVM
+    @Environment(SplitScreenManager.self) private var splitManager
 
     @State private var isEditing = false
     @State private var editText = ""
     @State private var showError = false
+    @State private var dropTargetURL: URL?
     @FocusState private var textFieldFocused: Bool
 
     var body: some View {
@@ -61,8 +63,22 @@ struct PathBarView: View {
                     .buttonStyle(.plain)
                     .background(
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.primary.opacity(0.001))
+                            .fill(dropTargetURL == comp.url
+                                  ? Color.accentColor.opacity(0.3)
+                                  : Color.primary.opacity(0.001))
                     )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .strokeBorder(dropTargetURL == comp.url
+                                          ? Color.accentColor : Color.clear, lineWidth: 1.5)
+                    )
+                    .dropDestination(for: URL.self) { urls, _ in
+                        guard !urls.contains(comp.url) else { return false }
+                        performMove(urls, to: comp.url)
+                        return true
+                    } isTargeted: { isTargeted in
+                        dropTargetURL = isTargeted ? comp.url : nil
+                    }
                     .onHover { hovering in
                         if hovering {
                             NSCursor.pointingHand.push()
@@ -148,6 +164,17 @@ struct PathBarView: View {
     }
 
     // MARK: - Helpers
+
+    private func performMove(_ urls: [URL], to destination: URL) {
+        let validURLs = FileMoveService.validURLsForFolderDrop(urls, destination: destination)
+        guard !validURLs.isEmpty else { return }
+        let currentURL = navigationVM.currentURL
+        FileMoveService.moveItems(validURLs, to: destination)
+        Task {
+            await splitManager.reloadAllPanes(showing: currentURL)
+            await splitManager.reloadAllPanes(showing: destination)
+        }
+    }
 
     private func displayName(_ name: String, url: URL) -> String {
         if name == "/" || name.isEmpty {

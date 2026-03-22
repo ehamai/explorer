@@ -6,6 +6,8 @@ struct ContentAreaView: View {
     @Environment(ClipboardManager.self) private var clipboardManager
     @Environment(SplitScreenManager.self) private var splitManager
 
+    @State private var isDropTarget = false
+
     var body: some View {
         ZStack {
             if directoryVM.isLoading {
@@ -28,6 +30,19 @@ struct ContentAreaView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
+                .overlay {
+                    if isDropTarget {
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(Color.accentColor, lineWidth: 2)
+                            .padding(2)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .dropDestination(for: URL.self) { urls, _ in
+                    performMove(urls, to: navigationVM.currentURL)
+                } isTargeted: { targeted in
+                    isDropTarget = targeted
+                }
                 .contextMenu { backgroundContextMenu() }
             } else {
                 switch directoryVM.viewMode {
@@ -38,6 +53,19 @@ struct ContentAreaView: View {
                 }
             }
         }
+    }
+
+    private func performMove(_ urls: [URL], to destination: URL) -> Bool {
+        let validURLs = FileMoveService.validURLsForBackgroundDrop(urls, destination: destination)
+        guard !validURLs.isEmpty else { return false }
+        let result = FileMoveService.moveItems(validURLs, to: destination)
+        Task {
+            await directoryVM.loadDirectory(url: destination)
+            for dir in result.sourceDirs {
+                await splitManager.reloadAllPanes(showing: dir)
+            }
+        }
+        return true
     }
 
     @ViewBuilder

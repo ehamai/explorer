@@ -26,6 +26,8 @@ private struct TabItemView: View {
 
     @Environment(TabManager.self) private var tabManager
     @State private var isHovering = false
+    @State private var isBlinking = false
+    @State private var switchWorkItem: DispatchWorkItem?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -81,7 +83,34 @@ private struct TabItemView: View {
                     lineWidth: 0.5
                 )
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.accentColor.opacity(isBlinking ? 0.4 : 0))
+                .animation(
+                    isBlinking
+                        ? .easeInOut(duration: 0.1).repeatForever(autoreverses: true)
+                        : .default,
+                    value: isBlinking
+                )
+        )
         .contentShape(RoundedRectangle(cornerRadius: 16))
+        .dropDestination(for: URL.self) { _, _ in
+            false
+        } isTargeted: { targeted in
+            if targeted && !isActive {
+                isBlinking = true
+                let workItem = DispatchWorkItem {
+                    isBlinking = false
+                    tabManager.activeTabID = tab.id
+                }
+                switchWorkItem = workItem
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: workItem)
+            } else {
+                isBlinking = false
+                switchWorkItem?.cancel()
+                switchWorkItem = nil
+            }
+        }
         .onTapGesture {
             tabManager.activeTabID = tab.id
         }

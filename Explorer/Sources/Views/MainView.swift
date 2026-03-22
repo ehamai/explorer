@@ -126,22 +126,13 @@ struct MainView: View {
         doubleClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
             if event.clickCount == 2 {
                 DispatchQueue.main.async {
-                    let panes = [sm.leftPane] + (sm.rightPane.map { [$0] } ?? [])
-                    for pane in panes {
-                        guard let tab = pane.tabManager.activeTab else { continue }
-                        let selected = tab.directoryVM.items.filter {
-                            tab.directoryVM.selectedItems.contains($0.id)
+                    guard let (tab, selected) = sm.resolveDoubleClickTarget() else { return }
+                    for item in selected {
+                        if item.isDirectory {
+                            tab.navigationVM.navigate(to: item.url)
+                        } else {
+                            NSWorkspace.shared.open(item.url)
                         }
-                        guard !selected.isEmpty else { continue }
-                        sm.activate(pane: pane)
-                        for item in selected {
-                            if item.isDirectory {
-                                tab.navigationVM.navigate(to: item.url)
-                            } else {
-                                NSWorkspace.shared.open(item.url)
-                            }
-                        }
-                        break
                     }
                 }
             }

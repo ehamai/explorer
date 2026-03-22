@@ -6,6 +6,9 @@ let package = Package(
     platforms: [
         .macOS(.v14)
     ],
+    dependencies: [
+        .package(url: "https://github.com/swiftlang/swift-testing.git", from: "0.12.0")
+    ],
     targets: [
         .executableTarget(
             name: "Explorer",
@@ -13,6 +16,14 @@ let package = Package(
             resources: [
                 .process("../Resources")
             ]
+        ),
+        .testTarget(
+            name: "ExplorerTests",
+            dependencies: [
+                "Explorer",
+                .product(name: "Testing", package: "swift-testing")
+            ],
+            path: "Explorer/Tests"
         )
     ]
 )

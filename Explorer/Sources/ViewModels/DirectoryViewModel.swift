@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 
+@MainActor
 @Observable
 final class DirectoryViewModel {
 
@@ -43,11 +44,16 @@ final class DirectoryViewModel {
     // MARK: - Dependencies
 
     private let fileSystemService: FileSystemService
+    private let watcher = DirectoryWatcher()
 
     // MARK: - Init
 
-    init(fileSystemService: FileSystemService = FileSystemService()) {
+    nonisolated init(fileSystemService: FileSystemService = FileSystemService()) {
         self.fileSystemService = fileSystemService
+        watcher.onChange = { [weak self] in
+            guard let self else { return }
+            Task { await self.reloadCurrentDirectory() }
+        }
     }
 
     // MARK: - Directory Loading
@@ -62,12 +68,26 @@ final class DirectoryViewModel {
             let loadedItems = try await fileSystemService.fullEnumerate(url: url, showHidden: true)
             allItems = loadedItems
             applyFilter()
+            watcher.watch(url: url)
         } catch {
             allItems = []
             items = []
         }
 
         isLoading = false
+    }
+
+    /// Reload the current directory without clearing selection (used by file watcher).
+    func reloadCurrentDirectory() async {
+        guard let url = loadedURL else { return }
+        do {
+            let loadedItems = try await fileSystemService.fullEnumerate(url: url, showHidden: true)
+            allItems = loadedItems
+            applyFilter()
+        } catch {
+            allItems = []
+            items = []
+        }
     }
 
     // MARK: - Sorting

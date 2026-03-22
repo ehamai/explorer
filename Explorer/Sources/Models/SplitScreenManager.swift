@@ -61,6 +61,19 @@ final class SplitScreenManager {
         activePaneID == pane.id
     }
 
+    /// Returns the selected items from the active pane's active tab, if any.
+    /// Used by the double-click handler to determine which items to open.
+    @MainActor
+    func resolveDoubleClickTarget() -> (tab: BrowserTab, items: [FileItem])? {
+        let pane = activePane
+        guard let tab = pane.tabManager.activeTab else { return nil }
+        let selected = tab.directoryVM.items.filter {
+            tab.directoryVM.selectedItems.contains($0.id)
+        }
+        guard !selected.isEmpty else { return nil }
+        return (tab, selected)
+    }
+
     /// Reload tabs in ALL panes that are showing the given directory
     func reloadAllPanes(showing url: URL) async {
         await leftPane.tabManager.reloadTabs(showing: url)
