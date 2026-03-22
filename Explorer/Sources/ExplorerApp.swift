@@ -98,34 +98,48 @@ struct ExplorerApp: App {
 
             CommandGroup(replacing: .pasteboard) {
                 Button("Cut") {
-                    if let urls = activeDir?.selectedURLs, !urls.isEmpty {
+                    if isEditingText {
+                        NSApp.sendAction(#selector(NSText.cut(_:)), to: nil, from: nil)
+                    } else if let urls = activeDir?.selectedURLs, !urls.isEmpty {
                         clipboardManager.cut(urls: urls)
                     }
                 }
                 .keyboardShortcut("x", modifiers: .command)
-                .disabled(activeDir?.selectedURLs.isEmpty != false)
 
                 Button("Copy") {
-                    if let urls = activeDir?.selectedURLs, !urls.isEmpty {
+                    if isEditingText {
+                        NSApp.sendAction(#selector(NSText.copy(_:)), to: nil, from: nil)
+                    } else if let urls = activeDir?.selectedURLs, !urls.isEmpty {
                         clipboardManager.copy(urls: urls)
                     }
                 }
                 .keyboardShortcut("c", modifiers: .command)
-                .disabled(activeDir?.selectedURLs.isEmpty != false)
 
                 Button("Paste") {
-                    guard let nav = activeNav, let dir = activeDir else { return }
-                    let url = nav.currentURL
-                    Task {
-                        let sourceDir = try? await clipboardManager.paste(to: url)
-                        await dir.loadDirectory(url: url)
-                        if let sourceDir {
-                            await splitManager.reloadAllPanes(showing: sourceDir)
+                    if isEditingText {
+                        NSApp.sendAction(#selector(NSText.paste(_:)), to: nil, from: nil)
+                    } else {
+                        guard let nav = activeNav, let dir = activeDir else { return }
+                        let url = nav.currentURL
+                        Task {
+                            let sourceDir = try? await clipboardManager.paste(to: url)
+                            await dir.loadDirectory(url: url)
+                            if let sourceDir {
+                                await splitManager.reloadAllPanes(showing: sourceDir)
+                            }
                         }
                     }
                 }
                 .keyboardShortcut("v", modifiers: .command)
-                .disabled(!clipboardManager.hasPendingOperation)
+
+                Button("Select All") {
+                    if isEditingText {
+                        NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil)
+                    } else {
+                        activeDir?.selectAll()
+                    }
+                }
+                .keyboardShortcut("a", modifiers: .command)
             }
 
             CommandGroup(after: .sidebar) {
@@ -143,6 +157,11 @@ struct ExplorerApp: App {
                 .keyboardShortcut("i", modifiers: .command)
             }
         }
+    }
+
+    /// True when the key window's first responder is a text field editor.
+    private var isEditingText: Bool {
+        NSApp.keyWindow?.firstResponder is NSText
     }
 
     private func createNewFolder() {

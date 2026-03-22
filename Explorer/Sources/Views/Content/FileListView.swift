@@ -153,6 +153,10 @@ struct FileListView: View {
         }
         Button("Paste") { performPaste() }
         .disabled(!clipboardManager.hasPendingOperation)
+        Button("Copy Path") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(item.url.path, forType: .string)
+        }
 
         Divider()
 
