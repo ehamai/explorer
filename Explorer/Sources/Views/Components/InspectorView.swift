@@ -3,7 +3,6 @@ import AppKit
 
 struct InspectorView: View {
     @Environment(DirectoryViewModel.self) private var directoryVM
-    @Environment(NavigationViewModel.self) private var navigationVM
 
     var body: some View {
         Group {

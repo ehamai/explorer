@@ -13,6 +13,7 @@ let package = Package(
         .executableTarget(
             name: "Explorer",
             path: "Explorer/Sources",
+            exclude: ["Models/PLAN.md", "Views/PLAN.md", "ViewModels/PLAN.md", "Services/PLAN.md", "Helpers/PLAN.md"],
             resources: [
                 .process("../Resources")
             ]
@@ -23,7 +24,8 @@ let package = Package(
                 "Explorer",
                 .product(name: "Testing", package: "swift-testing")
             ],
-            path: "Explorer/Tests"
+            path: "Explorer/Tests",
+            exclude: ["PLAN.md"]
         )
     ]
 )

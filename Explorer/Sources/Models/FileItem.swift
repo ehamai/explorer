@@ -88,6 +88,8 @@ struct FileItem: Identifiable, Hashable, Equatable, Comparable {
                 kind = "Document"
             }
 
+            let icon = NSWorkspace.shared.icon(forFile: url.path)
+
             return FileItem(
                 url: url,
                 name: name,
@@ -96,7 +98,8 @@ struct FileItem: Identifiable, Hashable, Equatable, Comparable {
                 kind: kind,
                 isDirectory: isDirectory,
                 isHidden: isHidden,
-                isPackage: isPackage
+                isPackage: isPackage,
+                icon: icon
             )
         } catch {
             return nil
