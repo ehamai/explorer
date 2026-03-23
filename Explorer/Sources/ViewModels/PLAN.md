@@ -53,15 +53,17 @@ Manages directory contents, filtering, sorting, selection, and search for one br
 ### Dependencies
 ```swift
 private let fileSystemService: FileSystemService  // Actor for file I/O
-private let watcher = DirectoryWatcher()           // FS change monitoring
+private let watcher: DirectoryWatcher              // FS change monitoring
 ```
 
 ### Initialization
 ```swift
-nonisolated init(fileSystemService: FileSystemService = FileSystemService())
+nonisolated init(fileSystemService: FileSystemService = FileSystemService(),
+                 watcher: DirectoryWatcher = DirectoryWatcher())
 ```
 - `nonisolated`: Avoids @MainActor requirement in init
-- Dependency injection with default (enables testing)
+- Dependency injection with defaults (enables testing with custom watcher/service)
+- Both `fileSystemService` and `watcher` are injectable for test isolation
 - Sets up watcher callback: `watcher.onChange → Task { reloadCurrentDirectory() }`
 - `[weak self]` prevents retain cycles
 
@@ -325,7 +327,7 @@ DirectoryViewModel uses @MainActor to guarantee all state mutations happen on th
 ### Pattern 5: Dependency Injection
 All ViewModels accept dependencies via init parameters with defaults:
 ```swift
-init(fileSystemService: FileSystemService = FileSystemService())
+init(fileSystemService: FileSystemService = FileSystemService(), watcher: DirectoryWatcher = DirectoryWatcher())
 init(favoritesManager: FavoritesManager = FavoritesManager())
 ```
 This enables unit testing with real or mock dependencies.

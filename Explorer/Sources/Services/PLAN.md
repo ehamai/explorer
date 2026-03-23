@@ -256,8 +256,9 @@ JSON-encoded array of FavoriteItem.
 
 ### Methods
 
-#### init()
+#### init(storageDirectory: URL? = nil)
 Loads favorites from disk. If empty (first launch), populates defaults: Desktop, Documents, Downloads, Home.
+- `storageDirectory`: Optional injectable storage path. When nil (default), uses `~/Library/Application Support/Explorer/`. When provided, uses the given directory — enables test isolation without polluting real favorites.
 
 #### addFavorite(url: URL)
 1. Guard against duplicates (by URL)

@@ -44,12 +44,13 @@ final class DirectoryViewModel {
     // MARK: - Dependencies
 
     private let fileSystemService: FileSystemService
-    private let watcher = DirectoryWatcher()
+    private let watcher: DirectoryWatcher
 
     // MARK: - Init
 
-    nonisolated init(fileSystemService: FileSystemService = FileSystemService()) {
+    nonisolated init(fileSystemService: FileSystemService = FileSystemService(), watcher: DirectoryWatcher = DirectoryWatcher()) {
         self.fileSystemService = fileSystemService
+        self.watcher = watcher
         watcher.onChange = { [weak self] in
             guard let self else { return }
             Task { await self.reloadCurrentDirectory() }

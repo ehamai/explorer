@@ -116,9 +116,19 @@ After updating any sub-plan, check if the main `plan.md` needs updates:
 ### Testing
 - Use Swift Testing framework (`@Test`, `@Suite`)
 - Create temp directories with UUID-based paths in `.test-tmp/`
-- Use `defer { cleanup(dir) }` for cleanup
+- Use shared `TestHelpers` utilities (`makeTempDir`, `createFile`, `createFolder`, `cleanup`, `makeFileItem`)
+- Use `defer { TestHelpers.cleanup(dir) }` for cleanup
 - Mark suites testing @MainActor types with `@MainActor`
 - No mocking — use real FileManager with temp directories
+- Accept dependencies via init parameters for testability (e.g., `DirectoryViewModel(watcher:)`, `FavoritesManager(storageDirectory:)`)
+
+### Testing Requirements
+- **Every functional change must include unit tests.** When adding or modifying a public method, property, or behavior, add corresponding tests in the appropriate `*Tests.swift` file.
+- **Tests must pass before considering work complete.** Always run `swift test` after making functional changes and fix any failures before finishing.
+- **New types require a new test suite.** When adding a new Model, ViewModel, or Service, create a matching `*Tests.swift` file with a `@Suite` struct.
+- **Test naming**: Use descriptive camelCase names that describe the behavior being verified (e.g., `navigateToSameURLIsNoOp`, `sortByFieldTogglesSameField`).
+- **Test file per component**: Each testable component gets its own test file (e.g., `TabManagerTests.swift` for `TabManager`).
+- **Update Tests/PLAN.md**: When adding new test suites or significantly expanding existing ones, update `Explorer/Tests/PLAN.md` with suite name, test count, and descriptions.
 
 ### Views
 - Use `@ViewBuilder` for complex conditional content
@@ -146,11 +156,13 @@ After updating any sub-plan, check if the main `plan.md` needs updates:
 ### Adding a New Service
 1. Create in `Explorer/Sources/Services/`
 2. Choose concurrency model (actor for shared I/O, @Observable for UI state, class for lifecycle)
-3. Wire it up in ExplorerApp (if app-scoped) or in the consuming ViewModel
-4. Update `Explorer/Sources/Services/PLAN.md`
-5. Update `plan.md` dependency graph
-6. Write tests in `Explorer/Tests/`
-7. Update `Explorer/Tests/PLAN.md`
+3. Accept dependencies via init parameters with defaults for testability
+4. Wire it up in ExplorerApp (if app-scoped) or in the consuming ViewModel
+5. Update `Explorer/Sources/Services/PLAN.md`
+6. Update `plan.md` dependency graph
+7. Write unit tests in `Explorer/Tests/<ServiceName>Tests.swift`
+8. Update `Explorer/Tests/PLAN.md`
+9. Run `swift test` to verify all tests pass
 
 ### Adding a Keyboard Shortcut
 1. Add CommandGroup entry in ExplorerApp.swift
@@ -161,12 +173,34 @@ After updating any sub-plan, check if the main `plan.md` needs updates:
 ### Adding a New Model
 1. Create in `Explorer/Sources/Models/`
 2. Define protocol conformances (Identifiable, Hashable, Codable as needed)
-3. Update `Explorer/Sources/Models/PLAN.md`
-4. Update `plan.md` if it changes the composition hierarchy
+3. Write unit tests in `Explorer/Tests/<ModelName>Tests.swift`
+4. Update `Explorer/Sources/Models/PLAN.md`
+5. Update `Explorer/Tests/PLAN.md`
+6. Update `plan.md` if it changes the composition hierarchy
+7. Run `swift test` to verify all tests pass
+
+### Adding a New ViewModel
+1. Create in `Explorer/Sources/ViewModels/`
+2. Accept dependencies via init parameters with defaults
+3. Mark with `@MainActor` if it manages UI state
+4. Write unit tests in `Explorer/Tests/<ViewModelName>Tests.swift`
+5. Update `Explorer/Sources/ViewModels/PLAN.md`
+6. Update `Explorer/Tests/PLAN.md`
+7. Update `plan.md` with dependency graph changes
+8. Run `swift test` to verify all tests pass
+
+### Modifying Existing Functionality
+1. Read the relevant PLAN.md files BEFORE starting
+2. Make the code changes
+3. Add or update unit tests to cover the changed behavior
+4. Run `swift test` to verify all tests pass (existing + new)
+5. Run `swift build` to verify compilation
+6. Update ALL affected PLAN.md files
 
 ### Refactoring
 1. Read the relevant PLAN.md files BEFORE starting
-2. Make the code changes
-3. Update ALL affected PLAN.md files
+2. Run `swift test` to establish a green baseline BEFORE making changes
+3. Make the code changes
 4. Run `swift test` to verify nothing broke
 5. Run `swift build` to verify compilation
+6. Update ALL affected PLAN.md files

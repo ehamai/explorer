@@ -52,11 +52,25 @@ explorer/
 │   ├── Resources/
 │   │   └── Explorer.entitlements    # Sandbox configuration
 │   └── Tests/
-│       ├── PLAN.md                  # Test documentation
-│       ├── DirectoryViewModelTests.swift
-│       ├── FileMoveServiceTests.swift
-│       ├── PasteboardCommandTests.swift
-│       └── SplitScreenDoubleClickTests.swift
+│       ├── PLAN.md                  # Test documentation (203 tests, 17 suites)
+│       ├── TestHelpers.swift        # Shared test utilities
+│       ├── DirectoryViewModelTests.swift      # 7 tests — loading state
+│       ├── DirectoryViewModelSortFilterTests.swift  # 22 tests — sort/filter/search
+│       ├── FileMoveServiceTests.swift         # 12 tests — drag-drop validation
+│       ├── PasteboardCommandTests.swift       # 8 tests — clipboard commands
+│       ├── SplitScreenDoubleClickTests.swift  # 3 tests — double-click target
+│       ├── SplitScreenManagerTests.swift      # 12 tests — split-screen lifecycle
+│       ├── FileSystemServiceTests.swift       # 18 tests — file I/O operations
+│       ├── ClipboardManagerTests.swift        # 10 tests — paste lifecycle
+│       ├── NavigationViewModelTests.swift     # 22 tests — back/forward/breadcrumbs
+│       ├── FormatHelpersTests.swift           # 11 tests — formatting utilities
+│       ├── ViewModeTests.swift                # 5 tests — view mode enum
+│       ├── FileSortDescriptorTests.swift      # 15 tests — sort comparisons
+│       ├── FileItemTests.swift                # 12 tests — model conformances
+│       ├── TabManagerTests.swift              # 15 tests — tab lifecycle
+│       ├── FavoritesManagerTests.swift        # 15 tests — persistence
+│       ├── SidebarViewModelTests.swift        # 10 tests — sidebar state
+│       └── DirectoryWatcherTests.swift        # 6 tests — FS monitoring
 ```
 
 ## Architecture Pattern: MVVM + Services

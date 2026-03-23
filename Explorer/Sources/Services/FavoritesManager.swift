@@ -19,16 +19,18 @@ struct FavoriteItem: Identifiable, Codable, Equatable {
 final class FavoritesManager {
     var favorites: [FavoriteItem] = []
 
-    private static var storageDirectory: URL {
+    private let storageDirectory: URL
+    private var storagePath: URL {
+        storageDirectory.appendingPathComponent("favorites.json")
+    }
+
+    private static var defaultStorageDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return appSupport.appendingPathComponent("Explorer", isDirectory: true)
     }
 
-    private static var storagePath: URL {
-        storageDirectory.appendingPathComponent("favorites.json")
-    }
-
-    init() {
+    init(storageDirectory: URL? = nil) {
+        self.storageDirectory = storageDirectory ?? Self.defaultStorageDirectory
         loadFavorites()
         if favorites.isEmpty {
             loadDefaults()
@@ -79,7 +81,7 @@ final class FavoritesManager {
     }
 
     func loadFavorites() {
-        let path = Self.storagePath
+        let path = storagePath
         guard FileManager.default.fileExists(atPath: path.path) else { return }
 
         do {
@@ -141,8 +143,8 @@ final class FavoritesManager {
     }
 
     func saveFavorites() {
-        let directory = Self.storageDirectory
-        let path = Self.storagePath
+        let directory = storageDirectory
+        let path = storagePath
 
         do {
             try FileManager.default.createDirectory(
