@@ -1,4 +1,4 @@
-# Models Layer Plan
+# Models Layer
 
 ## Overview
 The Models layer defines the data structures and state managers that form the backbone of Explorer. It includes pure data models (FileItem, ViewMode, sort descriptors), container types (BrowserTab, PaneState), and observable state managers (TabManager, SplitScreenManager).
@@ -224,21 +224,16 @@ Observable class managing single/split-screen layout. Owns the pane hierarchy an
 
 ### State Transitions
 ```
-Single Pane Mode:
-  leftPane: exists, active
-  rightPane: nil
-  
-toggle() →
-
-Split Mode:
-  leftPane: exists
-  rightPane: created, becomes active
-  
-toggle() →
-
-Single Pane Mode:
-  leftPane: exists, becomes active
-  rightPane: destroyed
+                 toggle()                    toggle()
+  ┌────────────────────────────┐  ┌────────────────────────────┐
+  │                            ▼  │                            ▼
+┌─┴──────────────────┐     ┌──┴──────────────────┐
+│  SINGLE PANE MODE  │     │   SPLIT PANE MODE   │
+│                    │     │                      │
+│  leftPane: active  │     │  leftPane: exists    │
+│  rightPane: nil    │     │  rightPane: created  │
+│                    │     │  activePaneID: right  │
+└────────────────────┘     └──────────────────────┘
 ```
 
 Conformances: @Observable

@@ -1,4 +1,4 @@
-# Helpers Layer Plan
+# Helpers Layer
 
 ## Overview
 The Helpers layer contains utility functions for formatting file system data for display. Currently consists of a single static utility enum.

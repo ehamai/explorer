@@ -1,4 +1,4 @@
-# ViewModels Layer Plan
+# ViewModels Layer
 
 ## Overview
 The ViewModels layer contains 3 `@Observable` classes that manage the business logic and state for file browsing. They follow the MVVM pattern — views read their state, services handle I/O, and ViewModels coordinate between them. ViewModels do **not** reference each other directly; views mediate all cross-ViewModel communication.
@@ -110,11 +110,18 @@ Select all visible items / clear selection set.
 
 ### Reactive State Flow
 ```
-User changes searchText
-  → didSet fires
-  → applyFilter() called
-  → items re-derived from allItems
-  → @Observable triggers view re-render
+  User Input                didSet               Derived State
+ ┌──────────┐          ┌──────────────┐         ┌───────────┐
+ │searchText├─────────▶│              │         │           │
+ └──────────┘          │              │         │           │
+ ┌──────────┐          │ applyFilter()├────────▶│   items   │──▶ View re-render
+ │showHidden├─────────▶│              │         │ (filtered │
+ └──────────┘          │              │         │  + sorted)│
+ ┌──────────┐          │              │         │           │
+ │sortDesc. ├─────────▶│              │         │           │
+ └──────────┘          └──────────────┘         └───────────┘
+
+ Pipeline: allItems → filter hidden → filter search → sort → items
 ```
 
 ---
@@ -286,15 +293,26 @@ Button("Paste") {
 
 ### Communication Diagram
 ```
-Views coordinate:
-  SidebarView → NavigationVM.navigate() + DirectoryVM.loadDirectory()
-  PaneView.onChange → DirectoryVM.loadDirectory() on URL change
-  ExplorerApp commands → reads NavigationVM, writes DirectoryVM
-  
-Services as shared backends:
-  DirectoryVM → FileSystemService (file enumeration)
-  ClipboardManager → FileSystemService (cut/copy operations)
-  SidebarVM → FavoritesManager (persistence)
+┌─────────────────────────────────────────────────────────────────┐
+│                          Views                                  │
+│                                                                 │
+│  SidebarView ──▶ navigationVM.navigate() ──┐                    │
+│                  directoryVM.loadDirectory()◀┘                  │
+│                                                                 │
+│  PaneView ──────▶ .onChange(currentURL) ──▶ directoryVM.load()  │
+│                                                                 │
+│  ExplorerApp ───▶ clipboardMgr.paste() ──┐                     │
+│    commands       directoryVM.load() ◀───┘                     │
+│                   splitMgr.reloadAllPanes()                     │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │ delegates I/O
+┌───────────────────────────▼─────────────────────────────────────┐
+│                        Services                                  │
+│  DirectoryVM ──▶ FileSystemService  ◀── ClipboardManager        │
+│  SidebarVM ───▶ FavoritesManager                                │
+│  DirectoryVM ──▶ DirectoryWatcher                               │
+│  Views ────────▶ FileMoveService (stateless)                    │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ---

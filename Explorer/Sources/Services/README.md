@@ -1,4 +1,4 @@
-# Services Layer Plan
+# Services Layer
 
 ## Overview
 The Services layer contains 5 components that handle file system I/O, clipboard state, filesystem monitoring, favorites persistence, and drag-drop validation. The layer uses a mix of concurrency patterns: Swift actors, GCD dispatch sources, and synchronous operations.
@@ -107,6 +107,19 @@ Tracks cut/copy/paste state for file operations. Shared across panes to enable c
 ```
 
 ### State Model
+```
+            cut(urls)              paste(to:)
+  ┌──────┐──────────▶┌──────┐──────────────▶┌──────┐
+  │ IDLE │           │ CUT  │   move files   │ IDLE │
+  │      │◀──────────│      │◀───────────────│      │
+  └──┬───┘  clear()  └──────┘                └──────┘
+     │
+     │ copy(urls)           paste(to:)
+     └──────────▶┌──────┐──────────────▶ (stays COPY)
+                 │ COPY │   copy files    sourceURLs kept
+                 │      │◀──────────────  for re-paste
+                 └──────┘
+```
 ```swift
 enum ClipboardOperation: Equatable {
     case idle, cut, copy
@@ -207,10 +220,11 @@ Calls `stop()` for cleanup.
 
 ### Debounce Strategy
 ```
-FS change event received
-  → Cancel any pending debounce work item
-  → Schedule new work item after 0.3s
-  → When fires: dispatch onChange callback to main thread
+FS events:  ──●──●●●──●──────●──●───────────▶ time
+                                              
+Debounce:   ──[cancel][cancel][0.3s wait]──▶ fire onChange()
+                                              
+Result:     One callback per burst of changes (0.3s quiet period)
 ```
 Multiple rapid changes (e.g., batch file operations) collapse into a single callback.
 
@@ -289,13 +303,19 @@ Reorder via IndexSet move, save.
 ### Security Bookmark Flow
 ```
 addFavorite:
-  url → bookmarkData(withSecurityScope) → FavoriteItem.bookmarkData
+  url ──▶ bookmarkData(withSecurityScope) ──▶ FavoriteItem.bookmarkData
+           │ (fails)
+           └──▶ bookmarkData(plain) ──▶ FavoriteItem.bookmarkData
+                 │ (fails)
+                 └──▶ empty Data()
 
 loadFavorites:
-  FavoriteItem.bookmarkData → URL(resolvingBookmarkData:, withSecurityScope)
-    → if stale: re-create bookmark
-    → if fails: try without security scope
-    → if fails: use raw URL
+  bookmarkData ──▶ URL(resolvingBookmarkData, withSecurityScope)
+                    │ (stale) → re-create bookmark
+                    │ (fails)
+                    └──▶ URL(resolvingBookmarkData, plain)
+                          │ (fails)
+                          └──▶ use stored URL directly
 ```
 
 ### Default Favorites
