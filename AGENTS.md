@@ -255,7 +255,8 @@ Each source directory and subdirectory contains a `README.md` documenting its co
 3. Add or update unit tests to cover the changed behavior
 4. Run `swift test` to verify all tests pass
 5. Run `swift build` to verify compilation
-6. Update the README.md in the same directory as the changed file
+6. Run `./lint.sh` to verify architectural conventions
+7. Update the README.md in the same directory as the changed file
 
 ### Refactoring
 1. Read the relevant README.md file(s) BEFORE starting
@@ -263,7 +264,8 @@ Each source directory and subdirectory contains a `README.md` documenting its co
 3. Make the code changes
 4. Run `swift test` to verify nothing broke
 5. Run `swift build` to verify compilation
-6. Update all affected README.md files
+6. Run `./lint.sh` to verify architectural conventions
+7. Update all affected README.md files
 
 ### Adding a New Source Directory
 1. Create the directory under `Explorer/Sources/`
@@ -277,7 +279,41 @@ swift build           # Build
 swift run Explorer    # Run
 swift test            # Test (203 tests, 17 suites)
 swift package clean   # Clean
+./lint.sh             # Architectural lint (folder structure, conventions, MVVM patterns)
 ```
+
+### Architectural Linter (`lint.sh`)
+The `lint.sh` script enforces project conventions. It runs automatically on every commit via a pre-commit hook.
+
+**Errors** (block commits):
+
+| Rule | What it catches |
+|------|----------------|
+| **Documentation coverage** | Every source directory with `.swift` files must have a `README.md` |
+| **Observability patterns** | No `ObservableObject`, `@StateObject`, `@ObservedObject`, or `@Published` — use `@Observable` + `@Environment` |
+| **Safe deletion** | No `removeItem(at:)` in production code — use `trashItem` |
+| **Naming conventions** | ViewModel files → `*ViewModel.swift`; test files → `*Tests.swift` |
+| **ViewModel isolation** | ViewModels must not reference other ViewModels |
+| **Layer boundaries** | No ViewModel classes in Views/; no View structs in ViewModels/Services/ |
+| **Test coverage** | Every Model, Service, and ViewModel file must have a test file |
+| **No AnyView** | `AnyView` erases type info and kills SwiftUI diffing performance |
+| **No print()** | No `print()` statements in production code |
+
+**Warnings** (flagged but non-blocking — known tech debt to address over time):
+
+| Rule | What it catches |
+|------|----------------|
+| **Prefer async/await** | `DispatchQueue.main` in Views — use `Task {}` or `.task` modifier instead |
+| **View layer purity** | Direct `FileManager` calls in Views — delegate to Services/ViewModels |
+| **@State value types** | `@State` holding reference types (`Any`, `DispatchWorkItem`, etc.) — should be value types only |
+| **GeometryReader** | Flags `GeometryReader` usage for review — often causes layout performance issues |
+
+### Git Hooks
+Pre-commit hook runs `lint.sh` automatically. Install after cloning:
+```bash
+./hooks/install.sh
+```
+Bypass with `git commit --no-verify` (not recommended).
 
 **Requirements:** Swift 5.10+, macOS 14+ (Sonoma), Xcode 15.3+
 **Dependencies:** `swift-testing` 0.12+ (test only — no runtime deps)

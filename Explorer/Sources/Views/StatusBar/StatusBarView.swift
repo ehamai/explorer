@@ -2,7 +2,6 @@ import SwiftUI
 
 struct StatusBarView: View {
     @Environment(DirectoryViewModel.self) private var directoryVM
-    @Environment(NavigationViewModel.self) private var navigationVM
 
     var body: some View {
         HStack(spacing: 12) {
@@ -27,16 +26,6 @@ struct StatusBarView: View {
     }
 
     private var availableDiskSpace: Int64? {
-        let url = navigationVM.currentURL
-        guard let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]),
-              let capacity = values.volumeAvailableCapacityForImportantUsage else {
-            // Fall back to the older API
-            guard let attrs = try? FileManager.default.attributesOfFileSystem(forPath: url.path),
-                  let freeSize = attrs[.systemFreeSize] as? Int64 else {
-                return nil
-            }
-            return freeSize
-        }
-        return capacity
+        directoryVM.availableDiskSpace()
     }
 }

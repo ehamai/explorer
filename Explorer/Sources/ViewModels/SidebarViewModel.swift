@@ -55,6 +55,14 @@ final class SidebarViewModel {
         syncFavorites()
     }
 
+    /// Add a favorite only if the URL is a directory.
+    func addFavoriteIfDirectory(url: URL) {
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir),
+              isDir.boolValue else { return }
+        addFavorite(url: url)
+    }
+
     func removeFavorite(id: UUID) {
         favoritesManager.removeFavorite(id: id)
         syncFavorites()

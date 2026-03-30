@@ -112,14 +112,7 @@ struct FileListView: View {
 
             Button("New Folder") {
                 let currentURL = navigationVM.currentURL
-                var folderURL = currentURL.appendingPathComponent("untitled folder")
-                var counter = 1
-                while FileManager.default.fileExists(atPath: folderURL.path) {
-                    folderURL = currentURL.appendingPathComponent("untitled folder \(counter)")
-                    counter += 1
-                }
-                try? FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: false)
-                Task { await directoryVM.loadDirectory(url: currentURL) }
+                Task { await directoryVM.createNewFolder(in: currentURL) }
             }
         }
         .alert("Rename", isPresented: $showRenameAlert) {
@@ -217,18 +210,11 @@ struct FileListView: View {
 
     private func performRename() {
         guard let item = itemToRename, !renameName.isEmpty, renameName != item.name else { return }
-        let newURL = item.url.deletingLastPathComponent().appendingPathComponent(renameName)
-        try? FileManager.default.moveItem(at: item.url, to: newURL)
-        let currentURL = navigationVM.currentURL
-        Task { await directoryVM.loadDirectory(url: currentURL) }
+        Task { await directoryVM.renameItem(item, to: renameName) }
     }
 
     private func moveToTrash(_ urls: [URL]) {
-        for url in urls {
-            try? FileManager.default.trashItem(at: url, resultingItemURL: nil)
-        }
-        let currentURL = navigationVM.currentURL
-        Task { await directoryVM.loadDirectory(url: currentURL) }
+        Task { await directoryVM.trashItems(urls) }
     }
 
     private func performPaste() {

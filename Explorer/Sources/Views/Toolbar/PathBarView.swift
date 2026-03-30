@@ -157,7 +157,8 @@ struct PathBarView: View {
         } else {
             // Path doesn't exist — flash red border
             showError = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            Task {
+                try? await Task.sleep(for: .seconds(1))
                 showError = false
             }
         }

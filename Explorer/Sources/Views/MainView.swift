@@ -4,7 +4,10 @@ import AppKit
 struct MainView: View {
     @Environment(SplitScreenManager.self) private var splitManager
     @Environment(ClipboardManager.self) private var clipboardManager
-    @State private var doubleClickMonitor: Any?
+
+    /// NSEvent monitor reference — stored outside @State since it's a reference type.
+    /// Managed manually via install/remove lifecycle.
+    private static var _doubleClickMonitor: Any?
 
     private var leftTab: BrowserTab? {
         splitManager.leftPane.tabManager.activeTab
@@ -121,11 +124,11 @@ struct MainView: View {
     // MARK: - Double-Click Handler
 
     private func installDoubleClickMonitor() {
-        guard doubleClickMonitor == nil else { return }
+        guard Self._doubleClickMonitor == nil else { return }
         let sm = splitManager
-        doubleClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+        Self._doubleClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
             if event.clickCount == 2 {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let (tab, selected) = sm.resolveDoubleClickTarget() else { return }
                     for item in selected {
                         if item.isDirectory {
@@ -141,9 +144,9 @@ struct MainView: View {
     }
 
     private func removeDoubleClickMonitor() {
-        if let monitor = doubleClickMonitor {
+        if let monitor = Self._doubleClickMonitor {
             NSEvent.removeMonitor(monitor)
-            doubleClickMonitor = nil
+            Self._doubleClickMonitor = nil
         }
     }
 }

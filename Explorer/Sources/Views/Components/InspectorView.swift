@@ -4,6 +4,8 @@ import AppKit
 struct InspectorView: View {
     @Environment(DirectoryViewModel.self) private var directoryVM
 
+    @State private var folderCount: Int?
+
     var body: some View {
         Group {
             if let item = directoryVM.inspectedItem {
@@ -67,7 +69,10 @@ struct InspectorView: View {
             if !item.isDirectory {
                 propertyRow(label: "Size", value: FormatHelpers.formatFileSize(item.size))
             } else {
-                propertyRow(label: "Size", value: folderSize(item))
+                propertyRow(label: "Size", value: folderSizeText)
+                    .task(id: item.url) {
+                        folderCount = await directoryVM.folderItemCount(at: item.url)
+                    }
             }
 
             propertyRow(label: "Modified", value: fullDateString(item.dateModified))
@@ -132,29 +137,16 @@ struct InspectorView: View {
         return fullDateString(created)
     }
 
-    private func folderSize(_ item: FileItem) -> String {
-        guard let contents = try? FileManager.default.contentsOfDirectory(
-            at: item.url,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        ) else {
-            return "--"
-        }
-        let count = contents.count
+    private var folderSizeText: String {
+        guard let count = folderCount else { return "--" }
         return "\(count) \(count == 1 ? "item" : "items")"
     }
 
     private func posixPermissions(_ item: FileItem) -> String? {
-        guard let values = try? item.url.resourceValues(forKeys: [.fileSecurityKey]),
-              let security = values.fileSecurity else { return nil }
-        var mode: mode_t = 0
-        CFFileSecurityGetMode(security as CFFileSecurity, &mode)
-        return String(format: "%o", mode & 0o777)
+        directoryVM.fileAttributes(at: item.url).posixPermissions
     }
 
     private func fileOwner(_ item: FileItem) -> String? {
-        guard let attrs = try? FileManager.default.attributesOfItem(atPath: item.url.path),
-              let owner = attrs[.ownerAccountName] as? String else { return nil }
-        return owner
+        directoryVM.fileAttributes(at: item.url).owner
     }
 }

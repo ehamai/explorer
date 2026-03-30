@@ -27,7 +27,7 @@ private struct TabItemView: View {
     @Environment(TabManager.self) private var tabManager
     @State private var isHovering = false
     @State private var isBlinking = false
-    @State private var switchWorkItem: DispatchWorkItem?
+    @State private var switchTask: Task<Void, Never>?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -99,16 +99,16 @@ private struct TabItemView: View {
         } isTargeted: { targeted in
             if targeted && !isActive {
                 isBlinking = true
-                let workItem = DispatchWorkItem {
+                switchTask = Task {
+                    try? await Task.sleep(for: .seconds(0.5))
+                    guard !Task.isCancelled else { return }
                     isBlinking = false
                     tabManager.activeTabID = tab.id
                 }
-                switchWorkItem = workItem
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: workItem)
             } else {
                 isBlinking = false
-                switchWorkItem?.cancel()
-                switchWorkItem = nil
+                switchTask?.cancel()
+                switchTask = nil
             }
         }
         .onTapGesture {

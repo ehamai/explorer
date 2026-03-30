@@ -84,14 +84,7 @@ struct ContentAreaView: View {
 
         Button("New Folder") {
             let currentURL = navigationVM.currentURL
-            var folderURL = currentURL.appendingPathComponent("untitled folder")
-            var counter = 1
-            while FileManager.default.fileExists(atPath: folderURL.path) {
-                folderURL = currentURL.appendingPathComponent("untitled folder \(counter)")
-                counter += 1
-            }
-            try? FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: false)
-            Task { await directoryVM.loadDirectory(url: currentURL) }
+            Task { await directoryVM.createNewFolder(in: currentURL) }
         }
     }
 }

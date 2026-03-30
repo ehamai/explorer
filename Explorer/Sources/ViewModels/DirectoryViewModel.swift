@@ -148,4 +148,69 @@ final class DirectoryViewModel {
     func clearSelection() {
         selectedItems.removeAll()
     }
+
+    // MARK: - File Operations
+
+    /// Create a new folder with auto-incrementing name in the given directory.
+    func createNewFolder(in directory: URL) async {
+        var name = "untitled folder"
+        var counter = 1
+        while await fileSystemService.fileExists(at: directory.appendingPathComponent(name)) {
+            name = "untitled folder \(counter)"
+            counter += 1
+        }
+        _ = try? await fileSystemService.createFolder(in: directory, name: name)
+        await loadDirectory(url: directory)
+    }
+
+    /// Rename a file item and reload the directory.
+    func renameItem(_ item: FileItem, to newName: String) async {
+        guard !newName.isEmpty, newName != item.name else { return }
+        _ = try? await fileSystemService.renameItem(at: item.url, to: newName)
+        if let url = loadedURL {
+            await loadDirectory(url: url)
+        }
+    }
+
+    /// Move items to Trash and reload the directory.
+    func trashItems(_ urls: [URL]) async {
+        try? await fileSystemService.deleteItems(urls)
+        if let url = loadedURL {
+            await loadDirectory(url: url)
+        }
+    }
+
+    /// Get item count for a folder (for inspector display).
+    func folderItemCount(at url: URL) async -> Int? {
+        let items = try? await fileSystemService.fullEnumerate(url: url, showHidden: false)
+        return items?.count
+    }
+
+    /// Get file attributes for inspector display.
+    func fileAttributes(at url: URL) -> (posixPermissions: String?, owner: String?) {
+        guard let values = try? url.resourceValues(forKeys: [.fileSecurityKey]),
+              let security = values.fileSecurity else { return (nil, nil) }
+        var mode: mode_t = 0
+        CFFileSecurityGetMode(security as CFFileSecurity, &mode)
+        let posix = String(format: "%o", mode & 0o777)
+
+        let owner: String?
+        if let attrs = try? Foundation.FileManager.default.attributesOfItem(atPath: url.path),
+           let name = attrs[.ownerAccountName] as? String {
+            owner = name
+        } else {
+            owner = nil
+        }
+        return (posix, owner)
+    }
+
+    /// Get available disk space for the current directory.
+    func availableDiskSpace() -> Int64? {
+        guard let url = loadedURL else { return nil }
+        if let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]),
+           let capacity = values.volumeAvailableCapacityForImportantUsage {
+            return capacity
+        }
+        return nil
+    }
 }

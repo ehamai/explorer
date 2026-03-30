@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Pre-commit hook: runs architectural lint checks before allowing a commit.
+# Install: cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# Or run: ./hooks/install.sh
+
+set -uo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+echo "Running architectural lint..."
+if ! "$REPO_ROOT/lint.sh"; then
+    echo ""
+    echo "Commit blocked — fix lint violations above before committing."
+    echo "To bypass (not recommended): git commit --no-verify"
+    exit 1
+fi

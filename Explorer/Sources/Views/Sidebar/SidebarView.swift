@@ -59,10 +59,7 @@ struct SidebarView: View {
         .listStyle(.sidebar)
         .dropDestination(for: URL.self) { urls, _ in
             for url in urls {
-                var isDir: ObjCBool = false
-                if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
-                    sidebarVM.addFavorite(url: url)
-                }
+                sidebarVM.addFavoriteIfDirectory(url: url)
             }
             return !urls.isEmpty
         }
