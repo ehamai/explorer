@@ -48,4 +48,6 @@ TestHelpers.makeFileItem(name:isDirectory:isHidden:size:dateModified:kind:basePa
 | FavoritesManager | FavoritesManagerTests.swift | — | 15 | FavoritesManager |
 | SidebarViewModel | SidebarViewModelTests.swift | — | 10 | SidebarViewModel |
 | DirectoryWatcher | DirectoryWatcherTests.swift | — | 6 | DirectoryWatcher |
-| | **Total** | | **203** | |
+| MediaFileType Tests | MediaFileTypeTests.swift | — | 9 | MediaFileType |
+| MediaViewerViewModel Tests | MediaViewerViewModelTests.swift | ✓ | 38 | MediaViewerViewModel + MediaViewerContext |
+| | **Total** | | **250** | |

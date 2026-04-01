@@ -44,6 +44,11 @@ ExplorerApp (WindowGroup)
     │           └── PaneView(rightPane)
     └── Toolbar (Back, Forward, Up, ViewMode picker, Split toggle)
 
+ExplorerApp (WindowGroup "mediaViewer")
+└── MediaViewerWindow
+    ├── ImageViewerView (for images)
+    └── VideoViewerView (for videos)
+
 PaneView (per-pane container)
 ├── TabBarView (if tabs.count > 1)
 ├── PathBarView (breadcrumb or editable text field)
@@ -73,6 +78,44 @@ Root view managing split-screen layout and global toolbar.
 
 **Environment:** `SplitScreenManager`, `ClipboardManager`
 **Local State:** `doubleClickMonitor: Any?`
+
+## MediaViewerWindow (Views/MediaViewer/MediaViewerWindow.swift)
+
+Root view for media viewer windows opened via `openWindow(id: "mediaViewer", value:)`.
+
+**Responsibilities:**
+- Creates MediaViewerViewModel from a MediaViewerContext
+- Displays images (via ImageViewerView) or videos (via VideoViewerView) with black background
+- Handles left/right arrow key navigation between sibling media files
+- Shows toolbar with previous/next buttons and "N of M" status
+- Sets window title to filename via `.navigationTitle`
+- Displays error states and loading indicators
+- Cleans up AVPlayer on disappear
+
+**State:** `@State viewModel: MediaViewerViewModel`
+**Parameters:** `context: MediaViewerContext`
+
+## ImageViewerView (Views/MediaViewer/ImageViewerView.swift)
+
+Displays an NSImage scaled to fit the window.
+
+**Responsibilities:**
+- Renders image with `.resizable().scaledToFit()` — maintains aspect ratio without distortion
+- Black background, padding for aesthetics
+- Scales automatically with window resize
+
+**Parameters:** `image: NSImage`
+
+## VideoViewerView (Views/MediaViewer/VideoViewerView.swift)
+
+Displays a video using AVKit's VideoPlayer.
+
+**Responsibilities:**
+- Wraps `AVKit.VideoPlayer(player:)` for native playback controls
+- Auto-plays on appear, pauses on disappear
+- Standard macOS controls (play/pause, scrubber, volume, fullscreen)
+
+**Parameters:** `player: AVPlayer`
 
 ## PaneView (PaneView.swift)
 
@@ -106,7 +149,8 @@ Container for a single file browser pane (tabs + path + content + status).
 
 1. **Breadcrumb Click:** PathBarView → `navigationVM.navigate(to:)` → PaneView `.onChange` → `directoryVM.loadDirectory(url:)`
 2. **Sidebar Click:** SidebarView → `navigationVM.navigate(to:)` → `directoryVM.loadDirectory(url:)`
-3. **Double-Click:** NSEvent monitor → `splitManager.resolveDoubleClickTarget()` → navigate (directory) or `NSWorkspace.open` (file)
+3. **Double-Click:** NSEvent monitor → `splitManager.resolveDoubleClickTarget()` → navigate (directory), open in media viewer (image/video), or `NSWorkspace.open` (other files)
+4. **Media Viewer Navigation:** Arrow keys → `viewModel.goToNext()`/`goToPrevious()` → reload media
 4. **Path Edit:** PathBarView edit mode → validate path → navigate or show red border (1s)
 
 ## Code Duplication Notes

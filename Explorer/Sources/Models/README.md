@@ -16,6 +16,8 @@ The Models layer defines the data structures and state managers that form the ba
 | TabManager | class | TabManager.swift | ✓ | Manages tabs within a pane |
 | PaneState | struct | SplitScreenManager.swift | — | Container pairing pane ID + tab manager |
 | SplitScreenManager | class | SplitScreenManager.swift | ✓ | Manages split-screen layout and pane activation |
+| MediaFileType | enum | MediaFileType.swift | — | Image/video/unsupported file type detection |
+| MediaViewerContext | struct | MediaViewerContext.swift | — | Codable value for opening media viewer windows |
 
 ---
 
@@ -256,6 +258,53 @@ SplitScreenManager (@Observable)
             └── directoryVM: DirectoryViewModel
 ```
 
+## MediaFileType (MediaFileType.swift)
+
+### Purpose
+Enum for detecting whether a file is an image, video, or unsupported type. Used to decide whether to open files in the built-in media viewer.
+
+### Cases
+| Case | Description |
+|------|-------------|
+| .image | Recognized image format |
+| .video | Recognized video format |
+| .unsupported | Not a viewable media file |
+
+### Static Methods
+| Method | Return | Logic |
+|--------|--------|-------|
+| detect(from: URL) | MediaFileType | Uses UTType conformance; falls back to extension |
+| fromExtension(String) | MediaFileType | Extension-based lookup against known sets |
+
+### Computed Properties
+- `isMedia: Bool` — true for .image or .video
+
+### Supported Formats
+- **Images**: jpg, jpeg, png, gif, tiff, tif, bmp, heic, heif, webp, ico, svg, raw, cr2, nef, arw, dng
+- **Videos**: mp4, mov, m4v, avi, mkv, wmv, flv, webm, mpeg, mpg, 3gp
+
+Conformances: Hashable, Sendable
+
+---
+
+## MediaViewerContext (MediaViewerContext.swift)
+
+### Purpose
+Value type passed to `openWindow(id:value:)` to open a media viewer window. Contains the file to display and all sibling media files for arrow-key navigation.
+
+### Properties
+| Property | Type | Purpose |
+|----------|------|---------|
+| fileURL | URL | The media file to display initially |
+| siblingURLs | [URL] | All media files in the same directory |
+
+### Computed Properties
+- `currentIndex: Int` — index of fileURL within siblingURLs
+
+Conformances: Codable, Hashable
+
+---
+
 ## Design Patterns
 
 | Pattern | Where | Why |
@@ -281,3 +330,5 @@ SplitScreenManager (@Observable)
 | TabManager | ✗ | ✗ |
 | PaneState | ✗ | ✗ |
 | SplitScreenManager | ✗ | ✗ |
+| MediaFileType | ✗ | ✗ |
+| MediaViewerContext | ✓ | ✗ |

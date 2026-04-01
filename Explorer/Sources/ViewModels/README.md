@@ -10,6 +10,7 @@ The ViewModels layer contains 3 `@Observable` classes that manage the business l
 | DirectoryViewModel | DirectoryViewModel.swift | ✓ | File list, filtering, sorting, selection |
 | NavigationViewModel | NavigationViewModel.swift | — | Current URL, back/forward history |
 | SidebarViewModel | SidebarViewModel.swift | — | Favorites, volumes, system locations |
+| MediaViewerViewModel | MediaViewerViewModel.swift | ✓ | Media display, sibling navigation |
 
 ---
 
@@ -352,6 +353,66 @@ This enables unit testing with real or mock dependencies.
 
 ### Pattern 6: Closure-Based Notifications
 DirectoryWatcher uses `onChange` closure (with `[weak self]`) rather than Combine publishers or delegation, keeping coupling minimal.
+
+---
+
+## MediaViewerViewModel (MediaViewerViewModel.swift)
+
+### Purpose
+Manages the state for a media viewer window: loading images/videos, navigating between sibling media files, and cleanup.
+
+### Class Declaration
+```swift
+@MainActor @Observable final class MediaViewerViewModel
+```
+
+### Properties
+
+| Property | Type | Access | Purpose |
+|----------|------|--------|---------|
+| currentURL | URL | private(set) | URL of currently displayed media file |
+| siblingURLs | [URL] | private(set) | All media files in the same directory |
+| currentIndex | Int | private(set) | Position within siblingURLs |
+| displayImage | NSImage? | private(set) | Loaded image (nil for videos) |
+| player | AVPlayer? | private(set) | Video player (nil for images) |
+| mediaType | MediaFileType | private(set) | Type of current file |
+| isLoading | Bool | private(set) | Loading indicator |
+| errorMessage | String? | public | Error text for display |
+
+### Computed Properties
+
+| Property | Type | Logic |
+|----------|------|-------|
+| windowTitle | String | currentURL.lastPathComponent |
+| statusText | String | "\(currentIndex + 1) of \(siblingURLs.count)" |
+| canGoNext | Bool | currentIndex < siblingURLs.count - 1 |
+| canGoPrevious | Bool | currentIndex > 0 |
+
+### Initialization
+```swift
+init(context: MediaViewerContext)
+```
+Sets currentURL, siblingURLs, and currentIndex from the context.
+
+### Methods
+
+| Method | Behavior |
+|--------|----------|
+| loadMedia() | Detects file type via MediaFileType.detect(), loads NSImage or creates AVPlayer |
+| goToNext() | Wraps index forward, updates URL, reloads media |
+| goToPrevious() | Wraps index backward, updates URL, reloads media |
+| trashCurrentFile() | Trashes current file, notifies other windows, advances to next or signals dismiss |
+| startListeningForDeletions() | Subscribes to cross-window deletion notifications, updates sibling list |
+| cleanup() | Pauses player, removes notification observer |
+
+### Media Loading Logic
+```
+loadMedia()
+  → MediaFileType.detect(from: currentURL)
+  → .image → NSImage(contentsOf:) → displayImage
+  → .video → AVPlayer(url:) → player
+  → .unsupported → errorMessage = "Unsupported file type"
+```
 
 ---
 

@@ -4,6 +4,7 @@ import AppKit
 struct MainView: View {
     @Environment(SplitScreenManager.self) private var splitManager
     @Environment(ClipboardManager.self) private var clipboardManager
+    @Environment(\.openWindow) private var openWindow
 
     /// NSEvent monitor reference — stored outside @State since it's a reference type.
     /// Managed manually via install/remove lifecycle.
@@ -126,6 +127,7 @@ struct MainView: View {
     private func installDoubleClickMonitor() {
         guard Self._doubleClickMonitor == nil else { return }
         let sm = splitManager
+        let ow = openWindow
         Self._doubleClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
             if event.clickCount == 2 {
                 Task { @MainActor in
@@ -133,6 +135,12 @@ struct MainView: View {
                     for item in selected {
                         if item.isDirectory {
                             tab.navigationVM.navigate(to: item.url)
+                        } else if MediaFileType.detect(from: item.url).isMedia {
+                            let siblings = tab.directoryVM.items
+                                .filter { !$0.isDirectory && MediaFileType.detect(from: $0.url).isMedia }
+                                .map(\.url)
+                            let context = MediaViewerContext(fileURL: item.url, siblingURLs: siblings)
+                            ow(id: "mediaViewer", value: context)
                         } else {
                             NSWorkspace.shared.open(item.url)
                         }

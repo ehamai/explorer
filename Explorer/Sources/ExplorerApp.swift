@@ -30,6 +30,19 @@ struct ExplorerApp: App {
                 .frame(minWidth: 800, minHeight: 500)
         }
         .commands {
+            commandContent
+        }
+
+        WindowGroup("Media", id: "mediaViewer", for: MediaViewerContext.self) { $context in
+            if let context {
+                MediaViewerWindow(context: context)
+            }
+        }
+        .defaultSize(width: 800, height: 600)
+    }
+
+    @CommandsBuilder
+    private var commandContent: some Commands {
             CommandGroup(replacing: .newItem) {
                 Button("New Tab") {
                     splitManager.activeTabManager.addTab()
@@ -156,7 +169,6 @@ struct ExplorerApp: App {
                 }
                 .keyboardShortcut("i", modifiers: .command)
             }
-        }
     }
 
     /// True when the key window's first responder is a text field editor.

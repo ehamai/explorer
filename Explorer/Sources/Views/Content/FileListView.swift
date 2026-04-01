@@ -7,6 +7,7 @@ struct FileListView: View {
     @Environment(ClipboardManager.self) private var clipboardManager
     @Environment(FavoritesManager.self) private var favoritesManager
     @Environment(SplitScreenManager.self) private var splitManager
+    @Environment(\.openWindow) private var openWindow
 
     @State private var itemToRename: FileItem?
     @State private var renameName = ""
@@ -185,6 +186,12 @@ struct FileListView: View {
     private func openItem(_ item: FileItem) {
         if item.isDirectory {
             navigationVM.navigate(to: item.url)
+        } else if MediaFileType.detect(from: item.url).isMedia {
+            let siblings = directoryVM.items
+                .filter { !$0.isDirectory && MediaFileType.detect(from: $0.url).isMedia }
+                .map(\.url)
+            let context = MediaViewerContext(fileURL: item.url, siblingURLs: siblings)
+            openWindow(id: "mediaViewer", value: context)
         } else {
             NSWorkspace.shared.open(item.url)
         }
