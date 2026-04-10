@@ -68,7 +68,7 @@ struct MainView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 80)
+                .frame(width: 110)
             }
         }
 
@@ -85,7 +85,7 @@ struct MainView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 80)
+                    .frame(width: 110)
                 }
             }
         }

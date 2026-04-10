@@ -18,9 +18,18 @@ final class MediaViewerViewModel {
 
     private(set) var displayImage: NSImage?
     private(set) var player: AVPlayer?
+    private var playerLooper: AVPlayerLooper?
     private(set) var mediaType: MediaFileType = .unsupported
     private(set) var isLoading: Bool = false
     var errorMessage: String?
+
+    /// Whether videos play on loop. Persisted across sessions via UserDefaults.
+    var loopVideo: Bool {
+        didSet {
+            UserDefaults.standard.set(loopVideo, forKey: "MediaViewer.loopVideo")
+            configureLooping()
+        }
+    }
 
     /// Set to true when the last file is deleted and the window should close.
     private(set) var shouldDismiss: Bool = false
@@ -42,6 +51,7 @@ final class MediaViewerViewModel {
         self.currentURL = context.fileURL
         self.siblingURLs = context.siblingURLs
         self.currentIndex = context.currentIndex
+        self.loopVideo = UserDefaults.standard.bool(forKey: "MediaViewer.loopVideo")
     }
 
     // MARK: - Notification Handling
@@ -101,6 +111,7 @@ final class MediaViewerViewModel {
         isLoading = true
         errorMessage = nil
         player?.pause()
+        playerLooper = nil
         player = nil
         displayImage = nil
 
@@ -115,14 +126,51 @@ final class MediaViewerViewModel {
             }
 
         case .video:
-            let avPlayer = AVPlayer(url: currentURL)
-            player = avPlayer
+            let item = AVPlayerItem(url: currentURL)
+            let queuePlayer = AVQueuePlayer(playerItem: item)
+            player = queuePlayer
+            configureLooping()
 
         case .unsupported:
             errorMessage = "Unsupported file type"
         }
 
         isLoading = false
+    }
+
+    /// Configure looping or end-of-video seek-to-start based on `loopVideo`.
+    private func configureLooping() {
+        guard let queuePlayer = player as? AVQueuePlayer else { return }
+
+        // Tear down existing
+        playerLooper = nil
+
+        if loopVideo {
+            // AVPlayerLooper manages actionAtItemEnd internally
+            queuePlayer.actionAtItemEnd = .advance
+
+            // If the video already ended, we need to reset the player
+            // before creating the looper. Remove finished items and
+            // re-create from scratch.
+            let currentTime = queuePlayer.currentTime().seconds
+            let duration = queuePlayer.currentItem?.duration.seconds ?? 0
+            let isAtEnd = (duration > 0 && currentTime >= duration - 0.1)
+                || queuePlayer.currentItem?.status == .failed
+                || queuePlayer.currentItem == nil
+
+            if isAtEnd {
+                queuePlayer.removeAllItems()
+                let freshItem = AVPlayerItem(url: currentURL)
+                queuePlayer.insert(freshItem, after: nil)
+            }
+
+            let templateItem = AVPlayerItem(url: currentURL)
+            playerLooper = AVPlayerLooper(player: queuePlayer, templateItem: templateItem)
+            queuePlayer.play()
+        } else {
+            // Pause at end instead of removing the item from the queue
+            queuePlayer.actionAtItemEnd = .pause
+        }
     }
 
     // MARK: - Navigation
@@ -181,6 +229,7 @@ final class MediaViewerViewModel {
 
     func cleanup() {
         player?.pause()
+        playerLooper = nil
         player = nil
         if let observer = notificationObserver {
             NotificationCenter.default.removeObserver(observer)

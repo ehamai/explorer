@@ -7,6 +7,8 @@ struct ExplorerApp: App {
     @State private var sidebarVM = SidebarViewModel()
     @State private var clipboardManager = ClipboardManager()
     @State private var favoritesManager = FavoritesManager()
+    @State private var thumbnailCache: ThumbnailCache
+    @State private var thumbnailLoader: ThumbnailLoader
 
     private var activeNav: NavigationViewModel? {
         splitManager.activeTabManager.activeTab?.navigationVM
@@ -16,6 +18,9 @@ struct ExplorerApp: App {
     }
 
     init() {
+        let cache = ThumbnailCache()
+        _thumbnailCache = State(initialValue: cache)
+        _thumbnailLoader = State(initialValue: ThumbnailLoader(cache: cache))
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
@@ -27,6 +32,8 @@ struct ExplorerApp: App {
                 .environment(sidebarVM)
                 .environment(clipboardManager)
                 .environment(favoritesManager)
+                .environment(thumbnailCache)
+                .environment(thumbnailLoader)
                 .frame(minWidth: 800, minHeight: 500)
         }
         .commands {
@@ -100,6 +107,31 @@ struct ExplorerApp: App {
 
                 Button("as Icons") { activeDir?.viewMode = .icon }
                     .keyboardShortcut("2", modifiers: .command)
+
+                Button("as Mosaic") { activeDir?.viewMode = .mosaic }
+                    .keyboardShortcut("3", modifiers: .command)
+
+                Divider()
+
+                Button("Zoom In") {
+                    guard let dir = activeDir, dir.viewMode == .mosaic else { return }
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        let range = DirectoryViewModel.mosaicZoomRange
+                        dir.mosaicZoom = min(dir.mosaicZoom + 50, range.upperBound)
+                    }
+                }
+                .keyboardShortcut("+", modifiers: .command)
+                .disabled(activeDir?.viewMode != .mosaic)
+
+                Button("Zoom Out") {
+                    guard let dir = activeDir, dir.viewMode == .mosaic else { return }
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        let range = DirectoryViewModel.mosaicZoomRange
+                        dir.mosaicZoom = max(dir.mosaicZoom - 50, range.lowerBound)
+                    }
+                }
+                .keyboardShortcut("-", modifiers: .command)
+                .disabled(activeDir?.viewMode != .mosaic)
 
                 Divider()
 

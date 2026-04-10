@@ -21,7 +21,15 @@ struct ViewModeTests {
         #expect(ViewMode.icon.label == "Icons")
     }
 
-    @Test func allCasesHasTwoElements() {
-        #expect(ViewMode.allCases.count == 2)
+    @Test func mosaicSystemImage() {
+        #expect(ViewMode.mosaic.systemImage == "rectangle.split.3x3")
+    }
+
+    @Test func mosaicLabel() {
+        #expect(ViewMode.mosaic.label == "Mosaic")
+    }
+
+    @Test func allCasesHasThreeElements() {
+        #expect(ViewMode.allCases.count == 3)
     }
 }

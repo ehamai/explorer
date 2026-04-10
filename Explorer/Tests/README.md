@@ -1,7 +1,7 @@
 # Tests
 
 ## Overview
-Explorer has 203 unit/integration tests across 17 test suites, using the Swift Testing framework (0.12+). Tests use real filesystem operations on temporary directories — no mocking.
+Explorer has 317 unit/integration tests across 21 test suites, using the Swift Testing framework (0.12+). Tests use real filesystem operations on temporary directories — no mocking.
 
 ## Framework
 - **Swift Testing** (`@Test`, `@Suite` macros)
@@ -31,7 +31,7 @@ TestHelpers.makeFileItem(name:isDirectory:isHidden:size:dateModified:kind:basePa
 
 | Suite | File | @MainActor | Tests | Component |
 |-------|------|:---:|:---:|-----------|
-| DirectoryViewModel loading state | DirectoryViewModelTests.swift | ✓ | 7 | DirectoryViewModel |
+| DirectoryViewModel loading state | DirectoryViewModelTests.swift | ✓ | 18 | DirectoryViewModel |
 | DirectoryViewModel sort and filter | DirectoryViewModelSortFilterTests.swift | ✓ | 22 | DirectoryViewModel |
 | FileMoveService | FileMoveServiceTests.swift | — | 12 | FileMoveService |
 | Pasteboard command behaviors | PasteboardCommandTests.swift | ✓ | 8 | DirectoryViewModel + ClipboardManager |
@@ -49,5 +49,9 @@ TestHelpers.makeFileItem(name:isDirectory:isHidden:size:dateModified:kind:basePa
 | SidebarViewModel | SidebarViewModelTests.swift | — | 10 | SidebarViewModel |
 | DirectoryWatcher | DirectoryWatcherTests.swift | — | 6 | DirectoryWatcher |
 | MediaFileType Tests | MediaFileTypeTests.swift | — | 9 | MediaFileType |
-| MediaViewerViewModel Tests | MediaViewerViewModelTests.swift | ✓ | 38 | MediaViewerViewModel + MediaViewerContext |
-| | **Total** | | **250** | |
+| MediaViewerViewModel Tests | MediaViewerViewModelTests.swift | ✓ | 47 | MediaViewerViewModel + MediaViewerContext |
+| MosaicLayout | MosaicLayoutTests.swift | — | 16 | MosaicLayout row computation |
+| ThumbnailService | ThumbnailServiceTests.swift | — | 8 | ThumbnailService generation + caching |
+| ThumbnailCache | ThumbnailCacheTests.swift | — | 6 | ThumbnailCache NSCache wrapper |
+| ThumbnailLoader | ThumbnailLoaderTests.swift | ✓ | 11 | ThumbnailLoader concurrency, caching, cancellation |
+| | **Total** | | **317** | |

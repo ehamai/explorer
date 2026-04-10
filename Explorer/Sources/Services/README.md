@@ -1,7 +1,7 @@
 # Services Layer
 
 ## Overview
-The Services layer contains 5 components that handle file system I/O, clipboard state, filesystem monitoring, favorites persistence, and drag-drop validation. The layer uses a mix of concurrency patterns: Swift actors, GCD dispatch sources, and synchronous operations.
+The Services layer contains 8 components that handle file system I/O, clipboard state, filesystem monitoring, favorites persistence, drag-drop validation, and thumbnail management. The layer uses a mix of concurrency patterns: Swift actors, GCD dispatch sources, and synchronous operations.
 
 ## Service Inventory
 
@@ -12,6 +12,9 @@ The Services layer contains 5 components that handle file system I/O, clipboard 
 | DirectoryWatcher | class | GCD DispatchQueue | None | Silent failure |
 | FavoritesManager | @Observable class | Synchronous | JSON file | Graceful degradation |
 | FileMoveService | enum (static) | Synchronous | None | Partial success |
+| ThumbnailService | actor | async/await | Disk (JPEG cache) | Silent failure |
+| ThumbnailCache | @Observable class | @MainActor | In-memory (NSCache) | N/A |
+| ThumbnailLoader | @Observable class | @MainActor + async | In-memory | Silent failure |
 
 ## Dependency Graph
 
@@ -397,3 +400,166 @@ Executes bulk file moves:
 5. **Atomic writes**: FavoritesManager prevents JSON corruption
 6. **Bookmark caching**: FavoriteItem stores resolved bookmark data
 7. **Deferred operations**: ClipboardManager doesn't execute until paste()
+8. **Thumbnail concurrency limit**: ThumbnailLoader caps at 6 simultaneous loads
+9. **NSCache auto-eviction**: ThumbnailCache uses NSCache for memory-pressure-aware eviction
+
+---
+
+## ThumbnailService (ThumbnailService.swift)
+
+### Purpose
+Actor providing thumbnail generation and aspect ratio detection with disk caching. Routes generation by `UTType`: images use `CGImageSource` downsampling, videos use `AVAssetImageGenerator`, and other files fall back to `QLThumbnailGenerator`.
+
+### Declaration
+```swift
+actor ThumbnailService
+```
+
+### Supporting Types
+```swift
+struct ThumbnailCacheKey: Hashable {
+    let url: URL
+    let modificationDate: Date
+    let size: CGFloat
+    var diskFileName: String  // Hash-derived JPEG filename
+}
+
+enum ThumbnailError: Error {
+    case generationFailed
+}
+```
+
+### Initialization
+```swift
+nonisolated init(cacheDirectory: URL? = nil)
+```
+- `cacheDirectory`: Injectable cache path. Defaults to `~/Library/Caches/<BundleID>/Thumbnails/`.
+
+### Public API
+
+#### loadThumbnail(for:modificationDate:size:) async -> NSImage?
+Primary entry point. Checks disk cache → generates → saves to disk → returns image.
+
+#### generateThumbnail(for:modificationDate:size:) async throws -> NSImage
+Throwing convenience used by `ThumbnailLoader`. Wraps `loadThumbnail` and throws `ThumbnailError.generationFailed` on failure.
+
+#### aspectRatio(for:) async -> CGFloat?
+Returns width/height ratio using metadata-only reads (no pixel decode). Caches results in memory.
+
+### Disk Cache
+- **Location**: `~/Library/Caches/<BundleID>/Thumbnails/`
+- **Format**: JPEG 80% quality
+- **Key**: Hash of file path + modification date + size
+- **Eviction**: LRU when cache exceeds 500 MB
+
+### Generation Routing
+| UTType | Method | Details |
+|--------|--------|---------|
+| .image | CGImageSource | Downsampling with EXIF orientation |
+| .movie/.video | AVAssetImageGenerator | Frame at 1s ±1s tolerance |
+| Other | QLThumbnailGenerator | PDFs, documents, etc. |
+
+### Dependencies
+None (standalone actor).
+
+---
+
+## ThumbnailCache (ThumbnailCache.swift)
+
+### Purpose
+In-memory thumbnail cache wrapping NSCache with SwiftUI reactivity. Provides auto-eviction under memory pressure via NSCache while exposing an observable `loadedURLs` set to drive view updates.
+
+### Declaration
+```swift
+@MainActor @Observable final class ThumbnailCache
+```
+
+### Properties
+
+| Property | Type | Access | Purpose |
+|----------|------|--------|---------|
+| cache | NSCache\<NSString, NSImage\> | private | Underlying cache with auto-eviction |
+| loadedURLs | Set\<URL\> | private(set) | Tracks cached URLs — drives SwiftUI reactivity |
+
+### Initialization
+```swift
+init(countLimit: Int = 2000, totalCostLimitMB: Int = 200)
+```
+Configures NSCache count and total cost limits.
+
+### Methods
+
+#### get(for url: URL) -> NSImage?
+Retrieves a cached thumbnail by file URL.
+
+#### set(_ image: NSImage, for url: URL)
+Stores a thumbnail with estimated byte cost (width × height × 4). Inserts URL into `loadedURLs`.
+
+#### clear()
+Removes all cached objects and clears `loadedURLs`.
+
+### Cost Estimation
+Each image cost = `pixelsWide × pixelsHigh × 4` (RGBA bytes). Falls back to 0 if no representation found.
+
+---
+
+## ThumbnailLoader (ThumbnailLoader.swift)
+
+### Purpose
+Manages async thumbnail loading with concurrency limiting, request queuing, and cancellation. Coordinates between ThumbnailService (actor) and ThumbnailCache.
+
+### Declaration
+```swift
+@MainActor @Observable final class ThumbnailLoader
+```
+
+### Properties
+
+| Property | Type | Purpose |
+|----------|------|---------|
+| service | ThumbnailService | Actor for thumbnail generation |
+| cache | ThumbnailCache | In-memory thumbnail cache |
+| activeTasks | [URL: Task\<Void, Never\>] | Currently running load tasks |
+| activeCount | Int | Number of concurrent loads |
+| maxConcurrent | Int | Concurrency limit (6) |
+| pendingQueue | [(url, modificationDate)] | Queued requests waiting for capacity |
+
+### Initialization
+```swift
+init(service: ThumbnailService = ThumbnailService(), cache: ThumbnailCache = ThumbnailCache())
+```
+Dependency injection with defaults.
+
+### Methods
+
+#### loadThumbnail(for url: URL, modificationDate: Date)
+Called from SwiftUI `onAppear`. Pipeline:
+1. Skip if already loading or cached
+2. If under concurrency limit → start immediately
+3. If at limit → append to pending queue
+
+#### cancelThumbnail(for url: URL)
+Called from SwiftUI `onDisappear`. Cancels active task and removes from pending queue.
+
+#### cancelAll()
+Cancels all active tasks and clears the pending queue. Called on folder navigation.
+
+#### loadAspectRatio(for url: URL, into viewModel: DirectoryViewModel)
+Loads aspect ratio from ThumbnailService and sets it on the DirectoryViewModel.
+
+### Concurrency Model
+```
+loadThumbnail() calls:
+  activeCount < 6? ──yes──▶ startLoad() ──▶ await service.generateThumbnail()
+                    │                            │
+                    no                           ▼
+                    │                      cache.set(image)
+                    ▼                            │
+              pendingQueue.append()              ▼
+                                           processNext() ──▶ dequeue & startLoad()
+```
+
+### Dependencies
+- **ThumbnailService** (actor): Generates thumbnails via Quick Look or other APIs
+- **ThumbnailCache**: Stores generated thumbnails
+- **DirectoryViewModel**: Receives aspect ratio updates

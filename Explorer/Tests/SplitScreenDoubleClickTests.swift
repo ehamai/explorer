@@ -85,7 +85,8 @@ struct SplitScreenDoubleClickTests {
         sm.toggle()
         let rightTab = sm.rightPane!.tabManager.activeTab!
         await rightTab.directoryVM.loadDirectory(url: rightDir)
-        // No selection on right pane
+        // Right pane auto-selects first item, clear it to test no-selection case
+        rightTab.directoryVM.selectedItems.removeAll()
 
         let result = sm.resolveDoubleClickTarget()
 

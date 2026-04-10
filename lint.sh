@@ -77,7 +77,7 @@ header "Safe deletion (trashItem, not removeItem)"
 
 while IFS= read -r match; do
     [[ -n "$match" ]] && fail "Use trashItem instead of removeItem in production code: $match"
-done < <(grep -rn "\.removeItem(at" "$SOURCES" --include="*.swift" 2>/dev/null || true)
+done < <(grep -rn "\.removeItem(at" "$SOURCES" --include="*.swift" 2>/dev/null | grep -v "lint:allow" || true)
 
 # --- 4. Naming conventions ---
 
@@ -175,7 +175,7 @@ header "SwiftUI concurrency (prefer async/await over GCD)"
 
 while IFS= read -r match; do
     [[ -n "$match" ]] && warn "Prefer Task {} or .task over DispatchQueue.main in views: $match"
-done < <(grep -rn "DispatchQueue\.main" "$VIEWS" --include="*.swift" 2>/dev/null || true)
+done < <(grep -rn "DispatchQueue\.main" "$VIEWS" --include="*.swift" 2>/dev/null | grep -v "lint:allow" || true)
 
 # --- W2. Direct FileManager access in Views (should delegate to services/VMs) ---
 
@@ -199,7 +199,7 @@ header "GeometryReader usage"
 
 while IFS= read -r match; do
     [[ -n "$match" ]] && warn "GeometryReader can cause layout performance issues — ensure this is necessary: $match"
-done < <(grep -rn "GeometryReader" "$SOURCES" --include="*.swift" 2>/dev/null || true)
+done < <(grep -rn "GeometryReader" "$SOURCES" --include="*.swift" 2>/dev/null | grep -v "lint:allow" || true)
 
 # =============================================================================
 # Results

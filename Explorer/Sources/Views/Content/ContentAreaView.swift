@@ -7,6 +7,7 @@ struct ContentAreaView: View {
     @Environment(SplitScreenManager.self) private var splitManager
 
     @State private var isDropTarget = false
+    @FocusState private var isContentFocused: Bool
 
     var body: some View {
         ZStack {
@@ -50,8 +51,31 @@ struct ContentAreaView: View {
                     FileListView()
                 case .icon:
                     IconGridView()
+                case .mosaic:
+                    MosaicView()
                 }
             }
+        }
+        .focusable()
+        .focused($isContentFocused)
+        .focusEffectDisabled()
+        .defaultFocus($isContentFocused, true)
+        .onChange(of: directoryVM.items) {
+            requestContentFocus()
+        }
+        .onChange(of: directoryVM.viewMode) {
+            requestContentFocus()
+        }
+        .onChange(of: navigationVM.currentURL) {
+            requestContentFocus()
+        }
+    }
+
+    private func requestContentFocus() {
+        // Delay to let the view hierarchy settle after state changes
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(100))
+            isContentFocused = true
         }
     }
 

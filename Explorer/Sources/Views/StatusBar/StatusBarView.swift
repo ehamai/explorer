@@ -17,12 +17,40 @@ struct StatusBarView: View {
 
             Spacer()
 
+            if directoryVM.viewMode == .mosaic {
+                mosaicZoomSlider
+            }
+
             if let space = availableDiskSpace {
                 Text("\(FormatHelpers.formatFileSize(space)) available")
             }
         }
         .font(.caption)
         .foregroundStyle(.secondary)
+    }
+
+    @ViewBuilder
+    private var mosaicZoomSlider: some View {
+        @Bindable var directoryVM = directoryVM
+        HStack(spacing: 4) {
+            Image(systemName: "minus.magnifyingglass")
+                .font(.caption2)
+            Slider(
+                value: Binding(
+                    get: { directoryVM.mosaicZoom },
+                    set: { newValue in
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            directoryVM.mosaicZoom = newValue
+                        }
+                    }
+                ),
+                in: DirectoryViewModel.mosaicZoomRange,
+                step: 10
+            )
+            .frame(width: 100)
+            Image(systemName: "plus.magnifyingglass")
+                .font(.caption2)
+        }
     }
 
     private var availableDiskSpace: Int64? {

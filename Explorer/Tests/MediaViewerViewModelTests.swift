@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import AVKit
 import Testing
 @testable import Explorer
 
@@ -644,5 +645,128 @@ struct MediaViewerViewModelTests {
             return Data()
         }
         return pngData
+    }
+
+    // MARK: - Video Looping
+
+    @Test func loopVideoDefaultIsFalse() {
+        // Clear any persisted value
+        UserDefaults.standard.removeObject(forKey: "MediaViewer.loopVideo")
+        let context = makeContext()
+        let vm = MediaViewerViewModel(context: context)
+        #expect(vm.loopVideo == false)
+    }
+
+    @Test func loopVideoPersistsToUserDefaults() {
+        UserDefaults.standard.removeObject(forKey: "MediaViewer.loopVideo")
+        let context = makeContext()
+        let vm = MediaViewerViewModel(context: context)
+
+        vm.loopVideo = true
+        #expect(UserDefaults.standard.bool(forKey: "MediaViewer.loopVideo") == true)
+
+        vm.loopVideo = false
+        #expect(UserDefaults.standard.bool(forKey: "MediaViewer.loopVideo") == false)
+    }
+
+    @Test func loopVideoRestoredFromUserDefaults() {
+        UserDefaults.standard.set(true, forKey: "MediaViewer.loopVideo")
+        let context = makeContext()
+        let vm = MediaViewerViewModel(context: context)
+        #expect(vm.loopVideo == true)
+        // Cleanup
+        UserDefaults.standard.removeObject(forKey: "MediaViewer.loopVideo")
+    }
+
+    @Test func loadVideoCreatesAVQueuePlayer() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        let mp4File = try TestHelpers.createFile("test.mp4", in: dir, content: "fake video data")
+        let context = MediaViewerContext(fileURL: mp4File, siblingURLs: [mp4File])
+        let vm = MediaViewerViewModel(context: context)
+
+        vm.loadMedia()
+        #expect(vm.player is AVQueuePlayer, "Video should use AVQueuePlayer")
+    }
+
+    @Test func loadVideoWithLoopOnCreatesLooper() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        let mp4File = try TestHelpers.createFile("test.mp4", in: dir, content: "fake video data")
+
+        UserDefaults.standard.set(true, forKey: "MediaViewer.loopVideo")
+        defer { UserDefaults.standard.removeObject(forKey: "MediaViewer.loopVideo") }
+
+        let context = MediaViewerContext(fileURL: mp4File, siblingURLs: [mp4File])
+        let vm = MediaViewerViewModel(context: context)
+
+        vm.loadMedia()
+        #expect(vm.player is AVQueuePlayer)
+        // With loop on, actionAtItemEnd should be .advance
+        if let qp = vm.player as? AVQueuePlayer {
+            #expect(qp.actionAtItemEnd == .advance)
+        }
+    }
+
+    @Test func loadVideoWithLoopOffSetsPause() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        let mp4File = try TestHelpers.createFile("test.mp4", in: dir, content: "fake video data")
+
+        UserDefaults.standard.set(false, forKey: "MediaViewer.loopVideo")
+        defer { UserDefaults.standard.removeObject(forKey: "MediaViewer.loopVideo") }
+
+        let context = MediaViewerContext(fileURL: mp4File, siblingURLs: [mp4File])
+        let vm = MediaViewerViewModel(context: context)
+
+        vm.loadMedia()
+        if let qp = vm.player as? AVQueuePlayer {
+            #expect(qp.actionAtItemEnd == .pause)
+        }
+    }
+
+    @Test func toggleLoopVideoChangesPlayerBehavior() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        let mp4File = try TestHelpers.createFile("test.mp4", in: dir, content: "fake video data")
+
+        UserDefaults.standard.removeObject(forKey: "MediaViewer.loopVideo")
+
+        let context = MediaViewerContext(fileURL: mp4File, siblingURLs: [mp4File])
+        let vm = MediaViewerViewModel(context: context)
+        vm.loadMedia()
+
+        // Initially not looping
+        if let qp = vm.player as? AVQueuePlayer {
+            #expect(qp.actionAtItemEnd == .pause)
+        }
+
+        // Toggle loop on
+        vm.loopVideo = true
+        if let qp = vm.player as? AVQueuePlayer {
+            #expect(qp.actionAtItemEnd == .advance)
+        }
+
+        // Toggle loop off
+        vm.loopVideo = false
+        if let qp = vm.player as? AVQueuePlayer {
+            #expect(qp.actionAtItemEnd == .pause)
+        }
+    }
+
+    @Test func navigationResetsPlayerAndLooping() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        let mp4a = try TestHelpers.createFile("a.mp4", in: dir, content: "fake")
+        let mp4b = try TestHelpers.createFile("b.mp4", in: dir, content: "fake")
+
+        let context = MediaViewerContext(fileURL: mp4a, siblingURLs: [mp4a, mp4b])
+        let vm = MediaViewerViewModel(context: context)
+        vm.loadMedia()
+
+        let firstPlayer = vm.player
+        vm.goToNext()
+        #expect(vm.player !== firstPlayer, "Navigation should create new player")
+        #expect(vm.player is AVQueuePlayer)
     }
 }

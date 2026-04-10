@@ -54,8 +54,9 @@ PaneView (per-pane container)
 ├── PathBarView (breadcrumb or editable text field)
 ├── ContentAreaView
 │   ├── FileListView (viewMode == .list)
-│   └── IconGridView (viewMode == .icon)
-├── StatusBarView
+│   ├── IconGridView (viewMode == .icon)
+│   └── MosaicView (viewMode == .mosaic)
+├── StatusBarView (zoom slider in mosaic mode)
 └── InspectorView (right panel via .inspector modifier)
 ```
 
@@ -87,7 +88,8 @@ Root view for media viewer windows opened via `openWindow(id: "mediaViewer", val
 - Creates MediaViewerViewModel from a MediaViewerContext
 - Displays images (via ImageViewerView) or videos (via VideoViewerView) with black background
 - Handles left/right arrow key navigation between sibling media files
-- Shows toolbar with previous/next buttons and "N of M" status
+- Shows toolbar with previous/next buttons, loop toggle (⌘L), and "N of M" status
+- Manages keyboard focus restoration after video→image transitions
 - Sets window title to filename via `.navigationTitle`
 - Displays error states and loading indicators
 - Cleans up AVPlayer on disappear
@@ -108,14 +110,15 @@ Displays an NSImage scaled to fit the window.
 
 ## VideoViewerView (Views/MediaViewer/VideoViewerView.swift)
 
-Displays a video using AVKit's VideoPlayer.
+Displays a video using an AppKit AVPlayerView wrapper.
 
 **Responsibilities:**
-- Wraps `AVKit.VideoPlayer(player:)` for native playback controls
+- Wraps `AVPlayerView` via `AVPlayerViewRepresentable` (NSViewRepresentable) for native playback controls
 - Auto-plays on appear, pauses on disappear
 - Standard macOS controls (play/pause, scrubber, volume, fullscreen)
+- Video loop toggle button overlay (⌘L)
 
-**Parameters:** `player: AVPlayer`
+**Parameters:** `player: AVPlayer`, `loopVideo: Binding<Bool>`
 
 ## PaneView (PaneView.swift)
 
@@ -139,6 +142,7 @@ Container for a single file browser pane (tabs + path + content + status).
 | ContentAreaView | ✓ | ✓ | ✓ | ✓ | — | — | — |
 | FileListView | ✓ | ✓ | ✓ | ✓ | — | ✓ | — |
 | IconGridView | ✓ | ✓ | ✓ | ✓ | — | ✓ | — |
+| MosaicView | ✓ | ✓ | ✓ | ✓ | — | ✓ | — |
 | SidebarView | — | — | ✓ | ✓ | — | — | ✓ |
 | PathBarView | ✓ | — | — | ✓ | — | — | — |
 | TabBarView | — | — | — | — | ✓ | — | — |
@@ -156,3 +160,37 @@ Container for a single file browser pane (tabs + path + content + status).
 ## Code Duplication Notes
 
 FileListView and IconGridView share nearly identical logic for context menus, rename alerts, drop targets, cut item feedback, and file operations. A shared ViewModifier could reduce this duplication.
+
+## MosaicView (Views/Content/MosaicView.swift)
+
+Google Photos-style justified grid layout for images and videos.
+
+**Responsibilities:**
+- Renders items in justified rows using `MosaicLayout.computeRows()` via `LazyVStack`
+- Each media item shows its thumbnail at native aspect ratio, scaled to fill the row
+- Non-media items show file icon, name, and modified date in a square cell
+- Video files display a play badge overlay
+- Arrow key navigation and Enter to open via background `KeyCaptureView`
+- Pinch-to-zoom gesture and ⌘+/⌘- keyboard shortcuts for zoom control
+- Context menus for file operations (Open, Cut, Copy, Paste, Rename, Favorites, Trash)
+- Drag & drop support for file moving
+
+**Environment:** `DirectoryViewModel`, `NavigationViewModel`, `ClipboardManager`, `FavoritesManager`, `SplitScreenManager`, `ThumbnailCache`, `ThumbnailLoader`
+
+## MosaicThumbnailView (Views/Components/MosaicThumbnailView.swift)
+
+Individual cell for the mosaic grid.
+
+**Responsibilities:**
+- Media files: shows thumbnail loaded via `ThumbnailLoader.awaitThumbnail()`, video badge for video files
+- Non-media files: shows file icon, name, modified date, and folder item count in a styled box
+- Highlights selection with accent color border
+- Uses `@State thumbnail` + `.task(id:)` for per-cell async thumbnail loading
+
+## ContentAreaView Focus Management
+
+ContentAreaView uses SwiftUI's `@FocusState` to programmatically move keyboard focus to the content area after directory loads. This ensures arrow key navigation works immediately without clicking.
+
+- `.focusable()` + `.focused($isContentFocused)` on the content ZStack
+- `.defaultFocus($isContentFocused, true)` for initial focus
+- Focus requested on `items` change, `viewMode` change, and `currentURL` change

@@ -18,6 +18,7 @@ The Models layer defines the data structures and state managers that form the ba
 | SplitScreenManager | class | SplitScreenManager.swift | ✓ | Manages split-screen layout and pane activation |
 | MediaFileType | enum | MediaFileType.swift | — | Image/video/unsupported file type detection |
 | MediaViewerContext | struct | MediaViewerContext.swift | — | Codable value for opening media viewer windows |
+| MosaicLayout | enum | MosaicLayout.swift | — | Justified row layout algorithm for mosaic view |
 
 ---
 
@@ -78,13 +79,14 @@ Queries 7 URLResourceKeys, derives kind from UTType, eagerly loads icon via NSWo
 ## ViewMode (ViewMode.swift)
 
 ### Purpose
-Enum toggling between list and icon display modes.
+Enum toggling between list, icon, and mosaic display modes.
 
 ### Cases
 | Case | systemImage | label |
 |------|-------------|-------|
 | .list | "list.bullet" | "List" |
 | .icon | "square.grid.2x2" | "Icons" |
+| .mosaic | "rectangle.split.3x3" | "Mosaic" |
 
 ### Conformances
 String raw value, CaseIterable, Identifiable (by rawValue)
@@ -332,3 +334,37 @@ Conformances: Codable, Hashable
 | SplitScreenManager | ✗ | ✗ |
 | MediaFileType | ✗ | ✗ |
 | MediaViewerContext | ✓ | ✗ |
+
+---
+
+## MosaicLayout (MosaicLayout.swift)
+
+### Purpose
+Enum (namespace) implementing a justified row layout algorithm for the mosaic view. Packs items into rows where each row fills the container width, preserving aspect ratios. Similar to Flickr/Google Photos layout.
+
+### Supporting Types
+```swift
+struct LayoutItem: Identifiable {
+    let id: URL
+    let width: CGFloat
+    let height: CGFloat
+}
+
+struct LayoutRow: Identifiable {
+    let id: Int
+    let items: [LayoutItem]
+}
+```
+
+### Static Methods
+| Method | Return | Purpose |
+|--------|--------|---------|
+| computeRows(items:aspectRatios:targetHeight:containerWidth:spacing:) | [LayoutRow] | Greedy row-packing algorithm |
+
+### Algorithm
+1. For each item, compute width from aspect ratio × target height
+2. Greedily pack items into rows until row exceeds container width
+3. Scale all items in a full row to exactly fill container width
+4. Last row keeps target height (not stretched)
+
+Complexity: O(n) single pass

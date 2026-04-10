@@ -31,7 +31,10 @@ struct MediaViewerWindow: View {
             } else if viewModel.mediaType == .image, let image = viewModel.displayImage {
                 ImageViewerView(image: image)
             } else if viewModel.mediaType == .video, let player = viewModel.player {
-                VideoViewerView(player: player)
+                VideoViewerView(player: player, loopEnabled: Binding(
+                    get: { viewModel.loopVideo },
+                    set: { viewModel.loopVideo = $0 }
+                ))
             }
 
             if showDeleteConfirmation {
@@ -63,14 +66,19 @@ struct MediaViewerWindow: View {
         .onChange(of: viewModel.shouldDismiss) { _, shouldDismiss in
             if shouldDismiss { dismiss() }
         }
+        .onChange(of: viewModel.currentURL) { _, _ in
+            restoreFocus()
+        }
         .onKeyPress(.leftArrow) {
             guard !showDeleteConfirmation else { return .ignored }
             viewModel.goToPrevious()
+            restoreFocus()
             return .handled
         }
         .onKeyPress(.rightArrow) {
             guard !showDeleteConfirmation else { return .ignored }
             viewModel.goToNext()
+            restoreFocus()
             return .handled
         }
         .onKeyPress(.escape) {
@@ -80,7 +88,10 @@ struct MediaViewerWindow: View {
         }
         .toolbar {
             ToolbarItemGroup(placement: .automatic) {
-                Button(action: { viewModel.goToPrevious() }) {
+                Button(action: {
+                    viewModel.goToPrevious()
+                    restoreFocus()
+                }) {
                     Image(systemName: "chevron.left")
                 }
                 .disabled(!viewModel.canGoPrevious)
@@ -92,13 +103,23 @@ struct MediaViewerWindow: View {
                     .foregroundStyle(.secondary)
                     .frame(minWidth: 50)
 
-                Button(action: { viewModel.goToNext() }) {
+                Button(action: {
+                    viewModel.goToNext()
+                    restoreFocus()
+                }) {
                     Image(systemName: "chevron.right")
                 }
                 .disabled(!viewModel.canGoNext)
                 .help("Next (→)")
 
                 Divider()
+
+                Button(action: { viewModel.loopVideo.toggle() }) {
+                    Image(systemName: viewModel.loopVideo ? "repeat.circle.fill" : "repeat.circle")
+                        .foregroundStyle(viewModel.loopVideo ? Color.accentColor : Color.secondary)
+                }
+                .help(viewModel.loopVideo ? "Looping On (⌘L)" : "Looping Off (⌘L)")
+                .keyboardShortcut("l", modifiers: .command)
 
                 Button(action: { showDeleteConfirmation = true }) {
                     Image(systemName: "trash")

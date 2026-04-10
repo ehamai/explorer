@@ -41,6 +41,10 @@ Manages directory contents, filtering, sorting, selection, and search for one br
 | showInspector | Bool | public | false | Inspector panel visibility |
 | loadedURL | URL? | private(set) | nil | Currently loaded directory |
 | searchText | String | public | "" | Search filter (has didSet → applyFilter) |
+| mosaicZoom | CGFloat | public | 200 | Target row height for mosaic view (100–500) |
+| containerWidth | CGFloat | public | 0 | Available width for mosaic layout computation |
+| aspectRatios | [URL: CGFloat] | public | [:] | Cached width/height ratios for mosaic items |
+| mosaicRows | [MosaicLayout.LayoutRow] | private(set) | [] | Computed justified rows for mosaic view |
 
 ### Computed Properties
 
@@ -108,6 +112,9 @@ Triggered automatically by didSet observers on: sortDescriptor, showHidden, sear
 
 #### selectAll() / clearSelection()
 Select all visible items / clear selection set.
+
+#### navigateMosaicSelection(direction:)
+Arrow key navigation for mosaic view. Moves selection between items in the justified grid layout (up/down across rows, left/right within rows). Wraps at row boundaries.
 
 ### Reactive State Flow
 ```
@@ -375,9 +382,12 @@ Manages the state for a media viewer window: loading images/videos, navigating b
 | currentIndex | Int | private(set) | Position within siblingURLs |
 | displayImage | NSImage? | private(set) | Loaded image (nil for videos) |
 | player | AVPlayer? | private(set) | Video player (nil for images) |
+| playerLooper | AVPlayerLooper? | private | Manages seamless video looping |
 | mediaType | MediaFileType | private(set) | Type of current file |
 | isLoading | Bool | private(set) | Loading indicator |
 | errorMessage | String? | public | Error text for display |
+| loopVideo | Bool | public | Video loop toggle, persisted via UserDefaults |
+| shouldDismiss | Bool | private(set) | Signal to close window (last file deleted) |
 
 ### Computed Properties
 
@@ -387,6 +397,8 @@ Manages the state for a media viewer window: loading images/videos, navigating b
 | statusText | String | "\(currentIndex + 1) of \(siblingURLs.count)" |
 | canGoNext | Bool | currentIndex < siblingURLs.count - 1 |
 | canGoPrevious | Bool | currentIndex > 0 |
+
+Note: `canGoNext` and `canGoPrevious` return `siblingURLs.count > 1` for wraparound navigation.
 
 ### Initialization
 ```swift
@@ -410,9 +422,15 @@ Sets currentURL, siblingURLs, and currentIndex from the context.
 loadMedia()
   → MediaFileType.detect(from: currentURL)
   → .image → NSImage(contentsOf:) → displayImage
-  → .video → AVPlayer(url:) → player
+  → .video → AVQueuePlayer(playerItem:) → player → configureLooping()
   → .unsupported → errorMessage = "Unsupported file type"
 ```
+
+### Video Looping
+- `loopVideo` persisted via `UserDefaults["MediaViewer.loopVideo"]`
+- When enabled: `AVPlayerLooper` + `actionAtItemEnd = .advance` for seamless looping
+- When disabled: `actionAtItemEnd = .pause` to stop at end without removing item
+- Toggling loop ON when video is at the end resets the player and restarts playback
 
 ---
 

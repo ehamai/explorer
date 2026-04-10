@@ -42,7 +42,7 @@ struct PasteboardCommandTests {
 
         let vm = DirectoryViewModel()
         await vm.loadDirectory(url: dir)
-        #expect(vm.selectedItems.isEmpty)
+        #expect(vm.selectedItems.count == 1, "loadDirectory auto-selects first item")
 
         vm.selectAll()
 

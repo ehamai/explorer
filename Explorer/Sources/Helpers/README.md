@@ -1,7 +1,7 @@
 # Helpers Layer
 
 ## Overview
-The Helpers layer contains utility functions for formatting file system data for display. Currently consists of a single static utility enum.
+The Helpers layer contains utility functions for formatting file system data, keyboard/focus management for content views, and zoom gesture handling.
 
 ## FormatHelpers (FormatHelpers.swift)
 
@@ -65,3 +65,74 @@ Returns human-readable file type description with multi-level fallback:
 - **InspectorView**: File size, modification date, creation date, file kind
 - **FileListView**: Date Modified column, Size column
 - **StatusBarView**: Available disk space formatting
+
+---
+
+## KeyCaptureView (KeyCaptureView.swift)
+
+### Purpose
+NSViewRepresentable wrapping an NSView that accepts first responder and forwards key events to a handler closure. Used by MosaicView for keyboard input handling (arrow keys, Enter, Delete).
+
+### Declaration
+```swift
+struct KeyCaptureView: NSViewRepresentable
+```
+
+### Parameters
+| Parameter | Type | Purpose |
+|-----------|------|---------|
+| onKeyDown | (UInt16) -> Bool | Handler receiving key codes; return true if handled |
+
+### Inner Class: KeyView
+- `acceptsFirstResponder: true`
+- `canBecomeKeyView: true`
+- Forwards `keyDown` events to `onKeyDown` closure
+
+---
+
+## ContentFocusHelper (ContentFocusHelper.swift)
+
+### Purpose
+NSViewRepresentable that programmatically moves keyboard focus to the `KeyCaptureView.KeyView` in mosaic/grid modes. Searches the NSView hierarchy to find the target view and makes it first responder. Used as a fallback for view modes where SwiftUI's `@FocusState` alone isn't sufficient.
+
+### Declaration
+```swift
+struct ContentFocusHelper: NSViewRepresentable
+```
+
+### Parameters
+| Parameter | Type | Purpose |
+|-----------|------|---------|
+| focusTrigger | Int | Incremented to trigger a focus request |
+
+### Focus Strategy
+1. Walk up from helper view's position in the NSView hierarchy
+2. Search each ancestor's subtree for a `KeyView` (from `KeyCaptureView`)
+3. Make the found view first responder via `window.makeFirstResponder()`
+
+---
+
+## PinchToZoomModifier (ScrollWheelZoomModifier.swift)
+
+### Purpose
+ViewModifier providing pinch-to-zoom (MagnifyGesture) on the mosaic view.
+
+### Declaration
+```swift
+struct PinchToZoomModifier: ViewModifier
+```
+
+### Parameters
+| Parameter | Type | Purpose |
+|-----------|------|---------|
+| zoom | Binding<CGFloat> | Current zoom level |
+| range | ClosedRange<CGFloat> | Min/max zoom bounds |
+
+### Extension
+```swift
+extension View {
+    func pinchToZoom(_ zoom: Binding<CGFloat>, range: ClosedRange<CGFloat>) -> some View
+}
+```
+
+Uses `.interactiveSpring` animation during gesture and `.easeInOut` on completion.

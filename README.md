@@ -7,6 +7,8 @@ A native macOS file browser built with SwiftUI. Explorer provides a Finder-like 
 - **Dual-pane split view** — independent left/right panes, each with their own tabs and navigation
 - **Tabbed browsing** — multiple tabs per pane with independent history
 - **List & icon views** — sortable multi-column table or adaptive icon grid
+- **Mosaic view** — Google Photos-style justified grid with image/video thumbnails, pinch-to-zoom, and video badges
+- **Media viewer** — built-in image/video viewer with arrow-key navigation, video looping, and cross-window deletion sync
 - **Drag & drop** — move files between directories, panes, tabs, sidebar, and breadcrumbs
 - **Cut / Copy / Paste** — full clipboard support across panes
 - **Favorites** — persistent sidebar favorites with security-scoped bookmarks
@@ -70,13 +72,13 @@ Explorer/
 ├── Sources/
 │   ├── ExplorerApp.swift        # @main entry point
 │   ├── Models/                  # Data types (FileItem, ViewMode, tabs, panes)
-│   ├── ViewModels/              # DirectoryViewModel, NavigationViewModel, SidebarViewModel
-│   ├── Views/                   # SwiftUI views (MainView, FileListView, IconGridView, …)
-│   ├── Services/                # FileSystemService, ClipboardManager, DirectoryWatcher, …
-│   └── Helpers/                 # Formatting utilities
+│   ├── ViewModels/              # DirectoryViewModel, NavigationViewModel, SidebarViewModel, MediaViewerViewModel
+│   ├── Views/                   # SwiftUI views (MainView, FileListView, IconGridView, MosaicView, …)
+│   ├── Services/                # FileSystemService, ClipboardManager, DirectoryWatcher, ThumbnailService, …
+│   └── Helpers/                 # Formatting utilities, keyboard/focus helpers, zoom modifier
 ├── Resources/
 │   └── Explorer.entitlements    # App sandbox configuration
-└── Tests/                       # 203 tests across 17 suites
+└── Tests/                       # 289 tests across 20 suites
 ```
 
 ## Keyboard Shortcuts
@@ -89,12 +91,14 @@ Explorer/
 | ⌘⇧N | New folder |
 | ⌘[ / ⌘] | Back / Forward |
 | ⌘↑ | Enclosing folder |
-| ⌘1 / ⌘2 | List view / Icon view |
+| ⌘1 / ⌘2 / ⌘3 | List view / Icon view / Mosaic view |
+| ⌘+ / ⌘- | Zoom in/out (mosaic view) |
 | ⌘⇧. | Toggle hidden files |
 | ⌘X / ⌘C / ⌘V | Cut / Copy / Paste |
 | ⌘⌫ | Move to Trash |
 | ⌘I | Inspector |
 | ⌘A | Select All |
+| ⌘L | Toggle video loop (media viewer) |
 
 ## License
 
