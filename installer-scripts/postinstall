@@ -1,0 +1,69 @@
+#!/bin/bash
+# postinstall: Register Explorer as the default file manager
+
+BUNDLE_ID="com.explorer.app"
+PLIST_PATH="$HOME/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist"
+PLISTBUDDY="/usr/libexec/PlistBuddy"
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+
+# Helper: find and remove existing handler entries for a content type
+remove_handler_for_type() {
+    local content_type="$1"
+    local count=0
+    while "$PLISTBUDDY" -c "Print :LSHandlers:$count" "$PLIST_PATH" &>/dev/null; do
+        local type
+        type=$("$PLISTBUDDY" -c "Print :LSHandlers:$count:LSHandlerContentType" "$PLIST_PATH" 2>/dev/null) || true
+        if [[ "$type" == "$content_type" ]]; then
+            "$PLISTBUDDY" -c "Delete :LSHandlers:$count" "$PLIST_PATH"
+        else
+            count=$((count + 1))
+        fi
+    done
+}
+
+# Helper: find and remove existing handler entries for a URL scheme
+remove_handler_for_scheme() {
+    local scheme="$1"
+    local count=0
+    while "$PLISTBUDDY" -c "Print :LSHandlers:$count" "$PLIST_PATH" &>/dev/null; do
+        local s
+        s=$("$PLISTBUDDY" -c "Print :LSHandlers:$count:LSHandlerURLScheme" "$PLIST_PATH" 2>/dev/null) || true
+        if [[ "$s" == "$scheme" ]]; then
+            "$PLISTBUDDY" -c "Delete :LSHandlers:$count" "$PLIST_PATH"
+        else
+            count=$((count + 1))
+        fi
+    done
+}
+
+# Ensure the plist directory and file exist
+mkdir -p "$(dirname "$PLIST_PATH")"
+if [[ ! -f "$PLIST_PATH" ]]; then
+    "$PLISTBUDDY" -c "Add :LSHandlers array" "$PLIST_PATH" 2>/dev/null || true
+fi
+"$PLISTBUDDY" -c "Print :LSHandlers" "$PLIST_PATH" &>/dev/null || \
+    "$PLISTBUDDY" -c "Add :LSHandlers array" "$PLIST_PATH"
+
+# 1. Set NSFileViewer
+defaults write -g NSFileViewer -string "$BUNDLE_ID"
+
+# 2. Set public.folder handler
+remove_handler_for_type "public.folder"
+"$PLISTBUDDY" -c "Add :LSHandlers:0 dict" "$PLIST_PATH"
+"$PLISTBUDDY" -c "Add :LSHandlers:0:LSHandlerContentType string public.folder" "$PLIST_PATH"
+"$PLISTBUDDY" -c "Add :LSHandlers:0:LSHandlerRoleAll string $BUNDLE_ID" "$PLIST_PATH"
+
+# 3. Set file:// scheme handler
+remove_handler_for_scheme "file"
+"$PLISTBUDDY" -c "Add :LSHandlers:0 dict" "$PLIST_PATH"
+"$PLISTBUDDY" -c "Add :LSHandlers:0:LSHandlerURLScheme string file" "$PLIST_PATH"
+"$PLISTBUDDY" -c "Add :LSHandlers:0:LSHandlerRoleAll string $BUNDLE_ID" "$PLIST_PATH"
+
+# 4. Refresh LaunchServices
+if [[ -x "$LSREGISTER" ]]; then
+    "$LSREGISTER" -lint -seed 2>/dev/null || true
+fi
+
+echo "Explorer has been set as the default file manager."
+echo "Please log out and back in (or restart) for changes to take full effect."
+exit 0
