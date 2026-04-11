@@ -1,0 +1,19 @@
+#!/bin/bash
+# preinstall: Back up current Finder/file manager settings before installing Explorer
+
+BACKUP_DIR="/Library/Application Support/Explorer/backup"
+PLIST_PATH="$HOME/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist"
+
+mkdir -p "$BACKUP_DIR"
+
+# Back up NSFileViewer
+CURRENT_VIEWER=$(defaults read -g NSFileViewer 2>/dev/null || echo "com.apple.finder")
+echo "$CURRENT_VIEWER" > "$BACKUP_DIR/nsfileviewer.bak"
+
+# Back up the entire LaunchServices plist if it exists
+if [[ -f "$PLIST_PATH" ]]; then
+    cp "$PLIST_PATH" "$BACKUP_DIR/launchservices.plist.bak"
+fi
+
+echo "Backed up current file manager settings to $BACKUP_DIR"
+exit 0

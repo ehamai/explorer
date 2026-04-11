@@ -1,0 +1,53 @@
+#!/bin/bash
+# explore — Open files and folders in Explorer.app from the terminal
+#
+# Usage:
+#   explore              Open the current directory
+#   explore <path>       Open a file or folder
+#   explore <p1> <p2>    Open multiple paths
+#   explore -h/--help    Show help
+
+APP="/Applications/Explorer.app"
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat <<EOF
+Usage: explore [path ...]
+
+Open files or folders in Explorer.app.
+
+  explore                Open the current directory in Explorer
+  explore ~/Documents    Open a specific folder
+  explore image.png      Open a file in Explorer
+  explore f1 f2 f3       Open multiple paths
+
+If no path is given, opens the current working directory.
+EOF
+    exit 0
+fi
+
+if [[ ! -d "$APP" ]]; then
+    echo "Error: Explorer.app not found at $APP" >&2
+    echo "Is Explorer installed? Try reinstalling the package." >&2
+    exit 1
+fi
+
+# Default to current directory if no arguments
+if [[ $# -eq 0 ]]; then
+    open -a "$APP" "$(pwd)"
+    exit 0
+fi
+
+# Open each argument
+for path in "$@"; do
+    # Resolve relative paths to absolute
+    if [[ "$path" != /* ]]; then
+        path="$(cd "$(dirname "$path")" 2>/dev/null && pwd)/$(basename "$path")"
+    fi
+
+    if [[ ! -e "$path" ]]; then
+        echo "Warning: '$path' does not exist, skipping" >&2
+        continue
+    fi
+
+    open -a "$APP" "$path"
+done
