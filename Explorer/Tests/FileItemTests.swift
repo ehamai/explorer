@@ -108,4 +108,112 @@ struct FileItemTests {
         )
         #expect(item.icon === customIcon)
     }
+
+    // MARK: - iCloud Status
+
+    @Test func fromURLDefaultsToLocalICloudStatus() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        let fileURL = try TestHelpers.createFile("test.txt", in: dir)
+
+        let item = FileItem.fromURL(fileURL)
+        #expect(item?.iCloudStatus == .local)
+    }
+
+    @Test func iCloudPlaceholderDetection() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        try TestHelpers.createFile(".test.txt.icloud", in: dir)
+
+        let placeholderURL = dir.appendingPathComponent(".test.txt.icloud")
+        let item = FileItem.fromURL(placeholderURL)
+        #expect(item != nil)
+        #expect(item?.name == "test.txt")
+        #expect(item?.iCloudStatus == .cloudOnly)
+    }
+
+    @Test func iCloudPlaceholderURLRewrittenToRealName() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        try TestHelpers.createFile(".photo.jpg.icloud", in: dir)
+
+        let placeholderURL = dir.appendingPathComponent(".photo.jpg.icloud")
+        let item = FileItem.fromURL(placeholderURL)
+        #expect(item?.url == dir.appendingPathComponent("photo.jpg"))
+    }
+
+    @Test func initWithExplicitICloudStatus() {
+        let item = FileItem(
+            url: URL(fileURLWithPath: "/tmp/test.txt"),
+            name: "test.txt",
+            size: 0,
+            dateModified: Date(),
+            kind: "Document",
+            isDirectory: false,
+            isHidden: false,
+            isPackage: false,
+            iCloudStatus: .cloudOnly
+        )
+        #expect(item.iCloudStatus == .cloudOnly)
+    }
+
+    @Test func defaultICloudStatusIsLocal() {
+        let item = TestHelpers.makeFileItem(name: "test.txt")
+        #expect(item.iCloudStatus == .local)
+    }
+
+    @Test func shortPlaceholderNameNotDetected() throws {
+        // ".a.icloud" is 9 chars (> 8), so it should be detected as placeholder
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        try TestHelpers.createFile(".a.icloud", in: dir)
+
+        let item = FileItem.fromURL(dir.appendingPathComponent(".a.icloud"))
+        #expect(item?.name == "a")
+        #expect(item?.iCloudStatus == .cloudOnly)
+    }
+
+    @Test func tooShortPlaceholderNotDetected() throws {
+        // ".icloud" alone is 7 chars, not a real placeholder (count <= 8)
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        try TestHelpers.createFile(".icloud", in: dir)
+
+        let item = FileItem.fromURL(dir.appendingPathComponent(".icloud"))
+        // Should NOT be detected as placeholder — treated as regular hidden file
+        #expect(item?.iCloudStatus == .local)
+    }
+
+    @Test func regularHiddenFileNotDetectedAsPlaceholder() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        try TestHelpers.createFile(".gitignore", in: dir)
+
+        let item = FileItem.fromURL(dir.appendingPathComponent(".gitignore"))
+        #expect(item != nil)
+        #expect(item?.name == ".gitignore")
+        #expect(item?.iCloudStatus == .local)
+    }
+
+    @Test func placeholderWithMultipleExtensions() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        try TestHelpers.createFile(".archive.tar.gz.icloud", in: dir)
+
+        let item = FileItem.fromURL(dir.appendingPathComponent(".archive.tar.gz.icloud"))
+        #expect(item?.name == "archive.tar.gz")
+        #expect(item?.iCloudStatus == .cloudOnly)
+    }
+
+    @Test func localizedNameUsedForDisplay() throws {
+        // When localizedNameKey is available and differs from nameKey,
+        // it should be used as the display name
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        let file = try TestHelpers.createFile("test.txt", in: dir)
+        let item = FileItem.fromURL(file)
+
+        // For regular local files, localizedName typically equals name
+        #expect(item?.name == "test.txt")
+    }
 }

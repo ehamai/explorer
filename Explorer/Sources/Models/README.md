@@ -19,6 +19,7 @@ The Models layer defines the data structures and state managers that form the ba
 | MediaFileType | enum | MediaFileType.swift | — | Image/video/unsupported file type detection |
 | MediaViewerContext | struct | MediaViewerContext.swift | — | Codable value for opening media viewer windows |
 | MosaicLayout | enum | MosaicLayout.swift | — | Justified row layout algorithm for mosaic view |
+| ICloudStatus | enum | ICloudStatus.swift | — | iCloud Drive sync status for a file |
 
 ---
 
@@ -38,6 +39,7 @@ Represents a single file or directory on the filesystem. Used throughout the app
 | isDirectory | Bool | let | .isDirectoryKey |
 | isHidden | Bool | let | .isHiddenKey |
 | isPackage | Bool | let | .isPackageKey |
+| iCloudStatus | ICloudStatus | var | Default `.local`; updated by ICloudStatusService |
 | _icon | NSImage? | private var | Icon cache |
 
 ### Computed Properties
@@ -51,10 +53,10 @@ Represents a single file or directory on the filesystem. Used throughout the app
 init(
     url: URL, name: String, size: Int64, dateModified: Date, kind: String,
     isDirectory: Bool, isHidden: Bool, isPackage: Bool,
-    icon: NSImage? = nil
+    icon: NSImage? = nil, iCloudStatus: ICloudStatus = .local
 )
 ```
-All stored properties set directly. `icon` parameter defaults to `nil` — when nil, the `icon` computed property falls back to NSWorkspace lookup.
+All stored properties set directly. `icon` parameter defaults to `nil` — when nil, the `icon` computed property falls back to NSWorkspace lookup. `iCloudStatus` defaults to `.local`.
 
 ### Protocol Conformances
 - **Identifiable**: id = url
@@ -66,12 +68,14 @@ All stored properties set directly. `icon` parameter defaults to `nil` — when 
 ```swift
 static func fromURL(_ url: URL) -> FileItem?
 ```
-Queries 7 URLResourceKeys, derives kind from UTType, eagerly loads icon via NSWorkspace. Returns nil on failure.
+Queries 11 URLResourceKeys, derives kind from UTType, eagerly loads icon via NSWorkspace. Detects `.icloud` placeholder files (iCloud cloud-only items) and rewrites their URLs to the logical file path. Returns nil on failure.
 
 ### Resource Keys Used
 ```swift
 [.nameKey, .fileSizeKey, .contentModificationDateKey,
- .typeIdentifierKey, .isDirectoryKey, .isHiddenKey, .isPackageKey]
+ .typeIdentifierKey, .isDirectoryKey, .isHiddenKey, .isPackageKey,
+ .ubiquitousItemDownloadingStatusKey, .ubiquitousItemIsDownloadingKey,
+ .ubiquitousItemIsUploadedKey, .ubiquitousItemIsUploadingKey]
 ```
 
 ---
@@ -307,6 +311,36 @@ Conformances: Codable, Hashable
 
 ---
 
+## ICloudStatus (ICloudStatus.swift)
+
+### Purpose
+Enum representing the iCloud Drive sync status of a file or directory.
+
+### Cases
+| Case | Description |
+|------|-------------|
+| .local | Not in iCloud Drive (or fully synced local file) |
+| .current | In iCloud Drive, fully downloaded and up to date |
+| .cloudOnly | In iCloud Drive, not downloaded locally |
+| .downloading(progress: Double) | Currently downloading from iCloud (0.0–1.0) |
+| .uploading(progress: Double) | Currently uploading to iCloud (0.0–1.0) |
+| .error(String) | Sync error with message |
+
+### Computed Properties
+| Property | Type | Logic |
+|----------|------|-------|
+| symbolName | String? | SF Symbol name for status (nil for `.local`) |
+| label | String | Human-readable status description |
+| isAvailableLocally | Bool | true for `.local`, `.current`; false for `.cloudOnly` |
+| canDownload | Bool | true for `.cloudOnly` |
+| canEvict | Bool | true for `.current` |
+
+### Conformances
+- **Equatable**: Synthesized
+- **Hashable**: Synthesized
+
+---
+
 ## Design Patterns
 
 | Pattern | Where | Why |
@@ -324,6 +358,7 @@ Conformances: Codable, Hashable
 | Type | Codable | Persisted |
 |------|:---:|:---:|
 | FileItem | ✗ | ✗ |
+| ICloudStatus | ✗ | ✗ |
 | ViewMode | ✗ | ✗ |
 | SortField | ✓ | ✗ (could be) |
 | SortOrder | ✓ | ✗ (could be) |

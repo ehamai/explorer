@@ -10,6 +10,8 @@ struct PaneView: View {
 
     @Environment(SplitScreenManager.self) private var splitManager
     @Environment(ClipboardManager.self) private var clipboardManager
+    @Environment(ICloudDriveService.self) private var iCloudDriveService
+    @Environment(ICloudStatusService.self) private var iCloudStatusService
 
     var body: some View {
         if let tab = pane.tabManager.activeTab {
@@ -92,9 +94,14 @@ struct PaneView: View {
             }
         }
         .task {
+            tab.directoryVM.setICloudDriveService(iCloudDriveService)
+            tab.directoryVM.setICloudStatusService(iCloudStatusService)
             if tab.directoryVM.allItems.isEmpty {
                 await tab.directoryVM.loadDirectory(url: tab.navigationVM.currentURL)
             }
+        }
+        .onChange(of: iCloudStatusService.statusMap) { _, newMap in
+            tab.directoryVM.updateICloudStatus(from: newMap)
         }
     }
 }

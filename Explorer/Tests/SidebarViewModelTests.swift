@@ -18,7 +18,11 @@ struct SidebarViewModelTests {
         defer { TestHelpers.cleanup(dir) }
         let manager = FavoritesManager(storageDirectory: dir)
         let vm = SidebarViewModel(favoritesManager: manager)
-        #expect(vm.systemLocations.count == 5)
+        // 5 base locations + 1 iCloud Drive if ~/Library/Mobile Documents/com~apple~CloudDocs exists
+        let iCloudPath = FileManager.default.homeDirectoryForCurrentUser
+            .appending(path: "Library/Mobile Documents/com~apple~CloudDocs")
+        let expected = FileManager.default.fileExists(atPath: iCloudPath.path(percentEncoded: false)) ? 6 : 5
+        #expect(vm.systemLocations.count == expected)
     }
 
     @Test func systemLocationsCorrectNames() throws {
@@ -27,7 +31,11 @@ struct SidebarViewModelTests {
         let manager = FavoritesManager(storageDirectory: dir)
         let vm = SidebarViewModel(favoritesManager: manager)
         let names = vm.systemLocations.map(\.name)
-        #expect(names == ["Desktop", "Documents", "Downloads", "Home", "Applications"])
+        #expect(names.contains("Desktop"))
+        #expect(names.contains("Documents"))
+        #expect(names.contains("Downloads"))
+        #expect(names.contains("Home"))
+        #expect(names.contains("Applications"))
     }
 
     @Test func systemLocationsCorrectIcons() throws {
@@ -36,13 +44,55 @@ struct SidebarViewModelTests {
         let manager = FavoritesManager(storageDirectory: dir)
         let vm = SidebarViewModel(favoritesManager: manager)
         let icons = vm.systemLocations.map(\.icon)
-        #expect(icons == [
-            "desktopcomputer",
-            "doc.fill",
-            "arrow.down.circle.fill",
-            "house.fill",
-            "square.grid.2x2.fill",
-        ])
+        #expect(icons.contains("desktopcomputer"))
+        #expect(icons.contains("doc.fill"))
+        #expect(icons.contains("arrow.down.circle.fill"))
+        #expect(icons.contains("house.fill"))
+        #expect(icons.contains("square.grid.2x2.fill"))
+    }
+
+    @Test func systemLocationsIncludesICloudDriveIfExists() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        let manager = FavoritesManager(storageDirectory: dir)
+        let vm = SidebarViewModel(favoritesManager: manager)
+        let names = vm.systemLocations.map(\.name)
+        let iCloudPath = FileManager.default.homeDirectoryForCurrentUser
+            .appending(path: "Library/Mobile Documents/com~apple~CloudDocs")
+        let shouldExist = FileManager.default.fileExists(atPath: iCloudPath.path(percentEncoded: false))
+        #expect(names.contains("iCloud Drive") == shouldExist)
+    }
+
+    @Test func iCloudDriveHasCorrectIcon() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        let manager = FavoritesManager(storageDirectory: dir)
+        let vm = SidebarViewModel(favoritesManager: manager)
+        if let iCloudEntry = vm.systemLocations.first(where: { $0.name == "iCloud Drive" }) {
+            #expect(iCloudEntry.icon == "icloud.fill")
+        }
+    }
+
+    @Test func iCloudDriveURLPointsToCloudDocs() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        let manager = FavoritesManager(storageDirectory: dir)
+        let vm = SidebarViewModel(favoritesManager: manager)
+        if let iCloudEntry = vm.systemLocations.first(where: { $0.name == "iCloud Drive" }) {
+            #expect(iCloudEntry.url.lastPathComponent == "com~apple~CloudDocs")
+        }
+    }
+
+    @Test func iCloudDriveAppearsAfterDocuments() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        let manager = FavoritesManager(storageDirectory: dir)
+        let vm = SidebarViewModel(favoritesManager: manager)
+        let names = vm.systemLocations.map(\.name)
+        if let iCloudIndex = names.firstIndex(of: "iCloud Drive"),
+           let docsIndex = names.firstIndex(of: "Documents") {
+            #expect(iCloudIndex == docsIndex + 1, "iCloud Drive should appear right after Documents")
+        }
     }
 
     @Test func addFavoriteDelegatesToManager() throws {

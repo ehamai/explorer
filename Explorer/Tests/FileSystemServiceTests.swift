@@ -224,4 +224,26 @@ struct FileSystemServiceTests {
         #expect(folderResult == true)
         #expect(fileResult == false)
     }
+
+    // MARK: - iCloud Operations
+
+    @Test func startDownloadingNonUbiquitousItemThrows() async throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        let file = try TestHelpers.createFile("local.txt", in: dir)
+
+        await #expect(throws: (any Error).self) {
+            try await service.startDownloading(url: file)
+        }
+    }
+
+    @Test func evictNonUbiquitousItemThrows() async throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        let file = try TestHelpers.createFile("local.txt", in: dir)
+
+        await #expect(throws: (any Error).self) {
+            try await service.evictItem(url: file)
+        }
+    }
 }

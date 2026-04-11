@@ -3,15 +3,7 @@ import Foundation
 actor FileSystemService {
     private let fileManager = FileManager.default
 
-    private static let resourceKeys: [URLResourceKey] = [
-        .nameKey,
-        .fileSizeKey,
-        .contentModificationDateKey,
-        .typeIdentifierKey,
-        .isDirectoryKey,
-        .isHiddenKey,
-        .isPackageKey
-    ]
+    private static let resourceKeys: [URLResourceKey] = Array(FileItem.iCloudResourceKeys)
 
     private static let resourceKeySet = Set(resourceKeys)
 
@@ -123,5 +115,17 @@ actor FileSystemService {
         var isDir: ObjCBool = false
         let exists = fileManager.fileExists(atPath: url.path, isDirectory: &isDir)
         return exists && isDir.boolValue
+    }
+
+    // MARK: - iCloud Operations
+
+    /// Trigger download of a cloud-only iCloud file.
+    func startDownloading(url: URL) throws {
+        try fileManager.startDownloadingUbiquitousItem(at: url)
+    }
+
+    /// Evict the local copy of an iCloud file, leaving only the cloud placeholder.
+    func evictItem(url: URL) throws {
+        try fileManager.evictUbiquitousItem(at: url)
     }
 }

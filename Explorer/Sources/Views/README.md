@@ -135,19 +135,19 @@ Container for a single file browser pane (tabs + path + content + status).
 
 ## Environment Objects Per View
 
-| View | SplitScreen | Clipboard | Directory | Navigation | TabManager | Favorites | Sidebar |
-|------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| MainView | ✓ | ✓ | — | — | — | — | — |
-| PaneView | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
-| ContentAreaView | ✓ | ✓ | ✓ | ✓ | — | — | — |
-| FileListView | ✓ | ✓ | ✓ | ✓ | — | ✓ | — |
-| IconGridView | ✓ | ✓ | ✓ | ✓ | — | ✓ | — |
-| MosaicView | ✓ | ✓ | ✓ | ✓ | — | ✓ | — |
-| SidebarView | — | — | ✓ | ✓ | — | — | ✓ |
-| PathBarView | ✓ | — | — | ✓ | — | — | — |
-| TabBarView | — | — | — | — | ✓ | — | — |
-| StatusBarView | — | — | ✓ | ✓ | — | — | — |
-| InspectorView | — | — | ✓ | — | — | — | — |
+| View | SplitScreen | Clipboard | Directory | Navigation | TabManager | Favorites | Sidebar | iCloudStatus |
+|------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| MainView | ✓ | ✓ | — | — | — | — | — | — |
+| PaneView | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — |
+| ContentAreaView | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
+| FileListView | ✓ | ✓ | ✓ | ✓ | — | ✓ | — | ✓ |
+| IconGridView | ✓ | ✓ | ✓ | ✓ | — | ✓ | — | ✓ |
+| MosaicView | ✓ | ✓ | ✓ | ✓ | — | ✓ | — | ✓ |
+| SidebarView | — | — | ✓ | ✓ | — | — | ✓ | — |
+| PathBarView | ✓ | — | — | ✓ | — | — | — | — |
+| TabBarView | — | — | — | — | ✓ | — | — | — |
+| StatusBarView | — | — | ✓ | ✓ | — | — | — | — |
+| InspectorView | — | — | ✓ | — | — | — | — | ✓ |
 
 ## Navigation Flows
 

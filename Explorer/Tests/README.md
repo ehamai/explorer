@@ -1,7 +1,7 @@
 # Tests
 
 ## Overview
-Explorer has 317 unit/integration tests across 21 test suites, using the Swift Testing framework (0.12+). Tests use real filesystem operations on temporary directories — no mocking.
+Explorer has 339 unit/integration tests across 22 test suites, using the Swift Testing framework (0.12+). Tests use real filesystem operations on temporary directories — no mocking.
 
 ## Framework
 - **Swift Testing** (`@Test`, `@Suite` macros)
@@ -37,13 +37,13 @@ TestHelpers.makeFileItem(name:isDirectory:isHidden:size:dateModified:kind:basePa
 | Pasteboard command behaviors | PasteboardCommandTests.swift | ✓ | 8 | DirectoryViewModel + ClipboardManager |
 | SplitScreenManager.resolveDoubleClickTarget | SplitScreenDoubleClickTests.swift | ✓ | 3 | SplitScreenManager |
 | SplitScreenManager | SplitScreenManagerTests.swift | ✓ | 12 | SplitScreenManager |
-| FileSystemService | FileSystemServiceTests.swift | — | 18 | FileSystemService |
+| FileSystemService | FileSystemServiceTests.swift | — | 20 | FileSystemService |
 | ClipboardManager paste operations | ClipboardManagerTests.swift | ✓ | 10 | ClipboardManager |
 | NavigationViewModel | NavigationViewModelTests.swift | — | 22 | NavigationViewModel |
 | FormatHelpers | FormatHelpersTests.swift | — | 11 | FormatHelpers |
 | ViewMode | ViewModeTests.swift | — | 5 | ViewMode |
 | FileSortDescriptor | FileSortDescriptorTests.swift | — | 15 | FileSortDescriptor |
-| FileItem | FileItemTests.swift | — | 12 | FileItem |
+| FileItem | FileItemTests.swift | — | 17 | FileItem |
 | TabManager | TabManagerTests.swift | ✓ | 15 | TabManager |
 | FavoritesManager | FavoritesManagerTests.swift | — | 15 | FavoritesManager |
 | SidebarViewModel | SidebarViewModelTests.swift | — | 10 | SidebarViewModel |
@@ -54,4 +54,5 @@ TestHelpers.makeFileItem(name:isDirectory:isHidden:size:dateModified:kind:basePa
 | ThumbnailService | ThumbnailServiceTests.swift | — | 8 | ThumbnailService generation + caching |
 | ThumbnailCache | ThumbnailCacheTests.swift | — | 6 | ThumbnailCache NSCache wrapper |
 | ThumbnailLoader | ThumbnailLoaderTests.swift | ✓ | 11 | ThumbnailLoader concurrency, caching, cancellation |
-| | **Total** | | **317** | |
+| ICloudStatus | ICloudStatusTests.swift | — | 15 | ICloudStatus enum properties and conformances |
+| | **Total** | | **339** | |

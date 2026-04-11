@@ -40,8 +40,21 @@ With Selection:                    No Selection:
 **Sections (when item selected):**
 - **Header:** 64pt icon, file name (2 lines), kind
 - **Information:** Kind, Size (or folder item count), Modified date, Created date, Full path (selectable)
-- **Details:** Hidden status, POSIX permissions (octal), Owner
+- **Details:** Hidden status, POSIX permissions (octal), Owner, iCloud status (with ICloudStatusBadge when inside iCloud Drive)
 
 **Empty State:** Magnifying glass icon + "No Selection"
 
 **Environment:** `DirectoryViewModel` — reads `inspectedItem` computed property + helper methods (`folderSize`, `createdDate`, `posixPermissions`, `fileOwner`)
+
+## ICloudStatusBadge (ICloudStatusBadge.swift)
+
+Compact badge view showing a file's iCloud sync status using an SF Symbol.
+
+**Props:** `ICloudStatus`
+**Behavior:**
+- Displays an SF Symbol corresponding to the status (e.g., cloud, cloud.fill, arrow.down.circle)
+- Color-coded: blue for synced, gray for cloud-only, orange for downloading/uploading, red for error
+- Tooltip shows the status label on hover
+- Hidden for `.local` status (no badge displayed)
+
+**Stateless** — no environment dependencies. Used by FileListView, IconGridView, MosaicView, and InspectorView.

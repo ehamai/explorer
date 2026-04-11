@@ -92,6 +92,10 @@ struct InspectorView: View {
 
             propertyRow(label: "Hidden", value: item.isHidden ? "Yes" : "No")
 
+            if item.iCloudStatus != .local {
+                propertyRow(label: "iCloud Status", value: item.iCloudStatus.label)
+            }
+
             if let posix = posixPermissions(item) {
                 propertyRow(label: "Permissions", value: posix)
             }

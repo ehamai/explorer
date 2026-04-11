@@ -164,6 +164,8 @@ final class DirectoryViewModel {
 
     private let fileSystemService: FileSystemService
     private let watcher: DirectoryWatcher
+    private var iCloudStatusService: ICloudStatusService?
+    private var iCloudDriveService: ICloudDriveService?
 
     // MARK: - Init
 
@@ -184,14 +186,30 @@ final class DirectoryViewModel {
         loadedURL = url
         selectedItems.removeAll()
 
-        do {
-            let loadedItems = try await fileSystemService.fullEnumerate(url: url, showHidden: true)
+        // Use merged enumeration for iCloud Drive root, standard enumeration otherwise
+        if let iCloudService = iCloudDriveService, iCloudService.isICloudDriveRoot(url) {
+            let loadedItems = iCloudService.enumerateICloudDriveRoot(showHidden: true)
             allItems = loadedItems
             applyFilter()
+            // Watch the CloudDocs directory for changes
             watcher.watch(url: url)
-        } catch {
-            allItems = []
-            items = []
+        } else {
+            do {
+                let loadedItems = try await fileSystemService.fullEnumerate(url: url, showHidden: true)
+                allItems = loadedItems
+                applyFilter()
+                watcher.watch(url: url)
+            } catch {
+                allItems = []
+                items = []
+            }
+        }
+
+        // Start iCloud monitoring if browsing an iCloud-managed directory
+        if let service = iCloudStatusService, service.isInsideICloudDrive(url) {
+            service.startMonitoring(directory: url)
+        } else {
+            iCloudStatusService?.stopMonitoring()
         }
 
         // Auto-select first item for immediate keyboard navigation
@@ -205,13 +223,21 @@ final class DirectoryViewModel {
     /// Reload the current directory without clearing selection (used by file watcher).
     func reloadCurrentDirectory() async {
         guard let url = loadedURL else { return }
-        do {
-            let loadedItems = try await fileSystemService.fullEnumerate(url: url, showHidden: true)
+
+        // Use merged enumeration for iCloud Drive root, standard enumeration otherwise
+        if let iCloudService = iCloudDriveService, iCloudService.isICloudDriveRoot(url) {
+            let loadedItems = iCloudService.enumerateICloudDriveRoot(showHidden: true)
             allItems = loadedItems
             applyFilter()
-        } catch {
-            allItems = []
-            items = []
+        } else {
+            do {
+                let loadedItems = try await fileSystemService.fullEnumerate(url: url, showHidden: true)
+                allItems = loadedItems
+                applyFilter()
+            } catch {
+                allItems = []
+                items = []
+            }
         }
     }
 
@@ -337,5 +363,47 @@ final class DirectoryViewModel {
             return capacity
         }
         return nil
+    }
+
+    // MARK: - iCloud Operations
+
+    /// Set the iCloud status service for live sync monitoring.
+    func setICloudStatusService(_ service: ICloudStatusService) {
+        iCloudStatusService = service
+    }
+
+    /// Set the iCloud Drive service for merged root enumeration.
+    func setICloudDriveService(_ service: ICloudDriveService) {
+        iCloudDriveService = service
+    }
+
+    /// Trigger download of a cloud-only iCloud file.
+    func downloadItem(at url: URL) async {
+        do {
+            try await fileSystemService.startDownloading(url: url)
+            await reloadCurrentDirectory()
+        } catch {
+            // Matches existing silent-catch pattern
+        }
+    }
+
+    /// Evict the local copy of an iCloud file.
+    func evictItem(at url: URL) async {
+        do {
+            try await fileSystemService.evictItem(url: url)
+            await reloadCurrentDirectory()
+        } catch {
+            // Matches existing silent-catch pattern
+        }
+    }
+
+    /// Merge live iCloud status from NSMetadataQuery into displayed items.
+    func updateICloudStatus(from statusMap: [URL: ICloudStatus]) {
+        guard !statusMap.isEmpty else { return }
+        for i in items.indices {
+            if let status = statusMap[items[i].url] {
+                items[i].iCloudStatus = status
+            }
+        }
     }
 }

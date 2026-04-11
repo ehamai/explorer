@@ -1,7 +1,7 @@
 # Services Layer
 
 ## Overview
-The Services layer contains 8 components that handle file system I/O, clipboard state, filesystem monitoring, favorites persistence, drag-drop validation, and thumbnail management. The layer uses a mix of concurrency patterns: Swift actors, GCD dispatch sources, and synchronous operations.
+The Services layer contains 10 components that handle file system I/O, clipboard state, filesystem monitoring, favorites persistence, drag-drop validation, thumbnail management, iCloud Drive sync status, and iCloud Drive virtual directory enumeration. The layer uses a mix of concurrency patterns: Swift actors, GCD dispatch sources, NSMetadataQuery, and synchronous operations.
 
 ## Service Inventory
 
@@ -15,16 +15,20 @@ The Services layer contains 8 components that handle file system I/O, clipboard 
 | ThumbnailService | actor | async/await | Disk (JPEG cache) | Silent failure |
 | ThumbnailCache | @Observable class | @MainActor | In-memory (NSCache) | N/A |
 | ThumbnailLoader | @Observable class | @MainActor + async | In-memory | Silent failure |
+| ICloudStatusService | @Observable class | @MainActor | In-memory | Silent failure |
+| ICloudDriveService | @Observable class | @MainActor | None | Graceful degradation |
 
 ## Dependency Graph
 
 ```
 ExplorerApp
 ├── ClipboardManager ──uses──→ FileSystemService
+├── ICloudStatusService (monitors iCloud Drive sync status)
 ├── SplitScreenManager (model layer, uses no services directly)
 ├── SidebarViewModel ──uses──→ FavoritesManager
 └── DirectoryViewModel ──uses──→ FileSystemService
                        ──owns──→ DirectoryWatcher
+                       ──uses──→ ICloudStatusService (optional, injected via setter)
 
 FileMoveService (stateless, used directly by Views)
 ```
@@ -46,7 +50,9 @@ Actor isolation prevents data races. All methods are implicitly actor-isolated.
 ```swift
 private static let resourceKeys: [URLResourceKey] = [
     .nameKey, .fileSizeKey, .contentModificationDateKey,
-    .typeIdentifierKey, .isDirectoryKey, .isHiddenKey, .isPackageKey
+    .typeIdentifierKey, .isDirectoryKey, .isHiddenKey, .isPackageKey,
+    .ubiquitousItemDownloadingStatusKey, .ubiquitousItemIsDownloadingKey,
+    .ubiquitousItemIsUploadedKey, .ubiquitousItemIsUploadingKey
 ]
 private static let resourceKeySet = Set(resourceKeys)
 ```
@@ -89,6 +95,12 @@ Synchronous existence check.
 
 #### isDirectory(at url: URL) -> Bool
 Synchronous directory check.
+
+#### startDownloading(url: URL) async throws
+Initiates download of an iCloud-only file via `FileManager.startDownloadingUbiquitousItem(at:)`. Throws if the file is not in iCloud Drive.
+
+#### evictItem(url: URL) async throws
+Evicts a downloaded iCloud file from local storage via `FileManager.evictUbiquitousItem(at:)`. The file remains in iCloud Drive but becomes cloud-only locally. Throws if the file is not in iCloud Drive.
 
 ### Performance Characteristics
 - **No caching**: Every call reads from disk
@@ -371,6 +383,52 @@ Executes bulk file moves:
 
 ---
 
+## ICloudStatusService (ICloudStatusService.swift)
+
+### Purpose
+Observable service that monitors iCloud Drive sync status for files in a directory using NSMetadataQuery. Provides real-time status updates as files download, upload, or change sync state.
+
+### Declaration
+```swift
+@MainActor @Observable final class ICloudStatusService
+```
+
+### Properties
+
+| Property | Type | Access | Purpose |
+|----------|------|--------|---------|
+| statusMap | [URL: ICloudStatus] | private(set) | Maps file URLs to their current iCloud status |
+| isAvailable | Bool | private(set) | Whether iCloud Drive is available for the current user |
+| iCloudDriveURL | URL? | private(set) | Root URL of iCloud Drive (`~/Library/Mobile Documents/`) |
+
+### Initialization
+```swift
+init()
+```
+Checks iCloud availability via `FileManager.ubiquityIdentityToken` and resolves iCloud Drive URL. Registers for `NSUbiquityIdentityDidChange` notifications to detect account changes.
+
+### Methods
+
+#### startMonitoring(directory: URL)
+Starts an NSMetadataQuery scoped to the given directory. Updates `statusMap` as file sync states change. Stops any previous monitoring session first.
+
+#### stopMonitoring()
+Stops the active NSMetadataQuery and clears the status map.
+
+#### isInsideICloudDrive(_ url: URL) -> Bool
+Returns whether a URL is inside the iCloud Drive container path.
+
+### NSMetadataQuery Usage
+- Predicate scoped to directory path
+- Observes `.NSMetadataQueryDidUpdate` and `.NSMetadataQueryDidFinishGathering` notifications
+- Reads `NSMetadataUbiquitousItemDownloadingStatusKey` and related attributes from query results
+- Runs on the main operation queue for UI thread safety
+
+### Account Change Handling
+Observes `NSUbiquityIdentityDidChange` to detect iCloud sign-in/sign-out. Updates `isAvailable` and `iCloudDriveURL` accordingly.
+
+---
+
 ## Cross-Service Patterns
 
 ### Concurrency Model
@@ -382,6 +440,7 @@ Executes bulk file moves:
 | DirectoryWatcher | GCD utility queue | Low-priority FS monitoring; main-thread callbacks |
 | FavoritesManager | Synchronous (caller thread) | Simple JSON I/O; infrequent operations |
 | FileMoveService | Synchronous (caller thread) | Direct FileManager calls; used in drop handlers |
+| ICloudStatusService | @MainActor + NSMetadataQuery | Real-time iCloud status; query runs on main queue |
 
 ### Error Handling Philosophy
 
@@ -391,6 +450,7 @@ Executes bulk file moves:
 | **Silent failure** | DirectoryWatcher | Best-effort monitoring |
 | **Graceful degradation** | FavoritesManager | Fallback chain (security → plain → raw) |
 | **Partial success** | FileMoveService | Skip failed items, return count |
+| **Silent failure** | ICloudStatusService | Best-effort monitoring; unavailable iCloud handled gracefully |
 
 ### Performance Optimizations
 1. **Streaming + batching**: FileSystemService.enumerate yields 500-item batches
@@ -563,3 +623,54 @@ loadThumbnail() calls:
 - **ThumbnailService** (actor): Generates thumbnails via Quick Look or other APIs
 - **ThumbnailCache**: Stores generated thumbnails
 - **DirectoryViewModel**: Receives aspect ratio updates
+
+---
+
+## ICloudDriveService (ICloudDriveService.swift)
+
+### Purpose
+Provides a Finder-like merged view of iCloud Drive by combining user files from `com~apple~CloudDocs` with app-specific container folders. Solves the problem that `~/Library/Mobile Documents/` shows raw bundle ID folder names.
+
+### Declaration
+```swift
+@MainActor @Observable final class ICloudDriveService
+```
+
+### Properties
+
+| Property | Type | Access | Purpose |
+|----------|------|--------|---------|
+| isAvailable | Bool | private(set) | Whether iCloud Drive exists on this system |
+| cloudDocsURL | URL? | private(set) | Path to `com~apple~CloudDocs` (user files) |
+| mobileDocsURL | URL? | private(set) | Path to `~/Library/Mobile Documents/` root |
+
+### Methods
+
+#### isICloudDriveRoot(_ url: URL) -> Bool
+Checks if a URL is the CloudDocs directory (the virtual iCloud Drive root).
+
+#### enumerateICloudDriveRoot(showHidden: Bool) -> [FileItem]
+Returns a merged listing combining:
+1. All items from `com~apple~CloudDocs/` (user files like Desktop, Documents, etc.)
+2. App container folders with `Documents/` subfolders, using `localizedNameKey` for friendly names
+
+App folder FileItems have URLs pointing to `<container>/Documents/` so navigation works transparently.
+
+### How It Works
+```
+~/Library/Mobile Documents/
+├── com~apple~CloudDocs/     ← User files enumerated directly
+│   ├── Desktop/
+│   ├── Documents/
+│   └── photo.pdf
+├── com~apple~Pages/         ← Has Documents/ → shown as "Pages"
+│   └── Documents/
+└── com~apple~Numbers/       ← Has Documents/ → shown as "Numbers"
+    └── Documents/
+
+Merged result:
+  Desktop, Documents, photo.pdf, Pages, Numbers
+```
+
+### Dependencies
+None (standalone service, uses FileManager directly).

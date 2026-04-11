@@ -9,6 +9,8 @@ struct ExplorerApp: App {
     @State private var favoritesManager = FavoritesManager()
     @State private var thumbnailCache: ThumbnailCache
     @State private var thumbnailLoader: ThumbnailLoader
+    @State private var iCloudStatusService = ICloudStatusService()
+    @State private var iCloudDriveService = ICloudDriveService()
 
     private var activeNav: NavigationViewModel? {
         splitManager.activeTabManager.activeTab?.navigationVM
@@ -34,6 +36,8 @@ struct ExplorerApp: App {
                 .environment(favoritesManager)
                 .environment(thumbnailCache)
                 .environment(thumbnailLoader)
+                .environment(iCloudStatusService)
+                .environment(iCloudDriveService)
                 .frame(minWidth: 800, minHeight: 500)
         }
         .commands {

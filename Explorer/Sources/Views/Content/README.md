@@ -62,6 +62,8 @@ Table-based multi-column file display.
 **Key Features:**
 - SwiftUI Table with multi-selection via `$directoryVM.selectedItems`
 - Context menu per row: Open, Cut, Copy, Paste, Copy Path, Rename, Pin to Favorites (folders), Properties, Move to Trash
+- iCloud context menu items: "Download Now" (for cloud-only files) and "Remove Download" (for locally cached iCloud files) when inside iCloud Drive
+- ICloudStatusBadge displayed next to file name for files in iCloud Drive
 - Drag source from any row; drop target on folder rows and background
 - Rename alert dialog; Return key opens selected items
 - Cut items displayed at 0.4 opacity
@@ -79,6 +81,7 @@ Grid-based file display with large icons.
 - Custom double-click detection (0.4s threshold between clicks)
 - Command-key multi-selection toggle
 - Same context menu, drag/drop, rename, and visual feedback as FileListView
+- ICloudStatusBadge displayed on icon cells for files in iCloud Drive
 
 ```
 ┌─────────────────────────────────────────────────────────┐

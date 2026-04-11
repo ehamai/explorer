@@ -25,6 +25,9 @@ struct FileListView: View {
                         FileIconView(item: item, size: 16)
                         Text(item.name)
                             .lineLimit(1)
+                        if item.iCloudStatus != .local {
+                            ICloudStatusBadge(status: item.iCloudStatus)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
@@ -51,6 +54,9 @@ struct FileListView: View {
                         FileIconView(item: item, size: 16)
                         Text(item.name)
                             .lineLimit(1)
+                        if item.iCloudStatus != .local {
+                            ICloudStatusBadge(status: item.iCloudStatus)
+                        }
                     }
                     .opacity(isCut(item) ? 0.4 : 1.0)
                 }
@@ -175,6 +181,17 @@ struct FileListView: View {
         }
 
         Divider()
+
+        if item.iCloudStatus.canDownload {
+            Button("Download Now") {
+                Task { await directoryVM.downloadItem(at: item.url) }
+            }
+        }
+        if item.iCloudStatus.canEvict {
+            Button("Remove Download") {
+                Task { await directoryVM.evictItem(at: item.url) }
+            }
+        }
 
         Button("Move to Trash", role: .destructive) {
             moveToTrash(selectedOrSingle(item))

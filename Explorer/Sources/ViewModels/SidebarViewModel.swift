@@ -31,13 +31,26 @@ final class SidebarViewModel {
 
     var systemLocations: [SidebarLocation] {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        return [
+        var locations = [
             SidebarLocation(name: "Desktop", url: home.appending(path: "Desktop"), icon: "desktopcomputer"),
             SidebarLocation(name: "Documents", url: home.appending(path: "Documents"), icon: "doc.fill"),
             SidebarLocation(name: "Downloads", url: home.appending(path: "Downloads"), icon: "arrow.down.circle.fill"),
             SidebarLocation(name: "Home", url: home, icon: "house.fill"),
             SidebarLocation(name: "Applications", url: URL(fileURLWithPath: "/Applications"), icon: "square.grid.2x2.fill"),
         ]
+
+        let iCloudDrive = home.appending(path: "Library/Mobile Documents/com~apple~CloudDocs")
+        if FileManager.default.fileExists(atPath: iCloudDrive.path(percentEncoded: false)) {
+            let localizedName = (try? iCloudDrive.resourceValues(
+                forKeys: [.localizedNameKey]
+            ))?.localizedName ?? "iCloud Drive"
+            locations.insert(
+                SidebarLocation(name: localizedName, url: iCloudDrive, icon: "icloud.fill"),
+                at: 2
+            )
+        }
+
+        return locations
     }
 
     // MARK: - Init

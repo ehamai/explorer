@@ -156,6 +156,17 @@ struct IconGridView: View {
 
         Divider()
 
+        if item.iCloudStatus.canDownload {
+            Button("Download Now") {
+                Task { await directoryVM.downloadItem(at: item.url) }
+            }
+        }
+        if item.iCloudStatus.canEvict {
+            Button("Remove Download") {
+                Task { await directoryVM.evictItem(at: item.url) }
+            }
+        }
+
         Button("Move to Trash", role: .destructive) {
             moveToTrash(selectedOrSingle(item))
         }
@@ -277,6 +288,12 @@ private struct IconCell: View {
     var body: some View {
         VStack(spacing: 6) {
             FileIconView(item: item, size: 64)
+                .overlay(alignment: .bottomTrailing) {
+                    if item.iCloudStatus != .local {
+                        ICloudStatusBadge(status: item.iCloudStatus)
+                            .padding(2)
+                    }
+                }
 
             Text(item.name)
                 .font(.callout)

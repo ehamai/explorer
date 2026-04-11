@@ -59,6 +59,7 @@ Manages directory contents, filtering, sorting, selection, and search for one br
 ```swift
 private let fileSystemService: FileSystemService  // Actor for file I/O
 private let watcher: DirectoryWatcher              // FS change monitoring
+private var iCloudStatusService: ICloudStatusService?  // iCloud sync status (injected via setter)
 ```
 
 ### Initialization
@@ -81,7 +82,9 @@ Loads directory contents from disk.
 3. Store in `allItems`
 4. Call `applyFilter()` to derive `items`
 5. Start watching directory with `watcher.watch(url:)`
-6. Set `isLoading = false`, update `loadedURL`
+6. Start iCloud monitoring if `iCloudStatusService` is set and URL is inside iCloud Drive; stop monitoring otherwise
+7. Update iCloud status from service's `statusMap` for all loaded items
+8. Set `isLoading = false`, update `loadedURL`
 
 **Error handling**: Catches silently, clears both arrays. No error state exposed.
 
@@ -115,6 +118,18 @@ Select all visible items / clear selection set.
 
 #### navigateMosaicSelection(direction:)
 Arrow key navigation for mosaic view. Moves selection between items in the justified grid layout (up/down across rows, left/right within rows). Wraps at row boundaries.
+
+#### setICloudStatusService(_ service: ICloudStatusService)
+Injects the iCloud status service. Called by views after environment injection.
+
+#### downloadItem(at url: URL) async
+Triggers download of a cloud-only iCloud file via `fileSystemService.startDownloading(url:)`.
+
+#### evictItem(at url: URL) async
+Evicts a downloaded iCloud file from local storage via `fileSystemService.evictItem(url:)`.
+
+#### updateICloudStatus(from statusMap: [URL: ICloudStatus])
+Updates iCloud status on all items in `allItems` from the given status map and re-applies filters.
 
 ### Reactive State Flow
 ```
@@ -233,8 +248,9 @@ struct SidebarLocation: Identifiable {
 ```swift
 var systemLocations: [SidebarLocation] {
     // Hardcoded quick links:
-    // Desktop (desktopcomputer), Documents (doc.fill), Downloads (arrow.down.circle.fill),
-    // Home (house.fill), Applications (square.grid.2x2.fill)
+    // Desktop (desktopcomputer), Documents (doc.fill),
+    // iCloud Drive (icloud.fill) — conditionally included if ~/Library/Mobile Documents/ exists,
+    // Downloads (arrow.down.circle.fill), Home (house.fill), Applications (square.grid.2x2.fill)
 }
 ```
 
@@ -317,6 +333,7 @@ Button("Paste") {
 ┌───────────────────────────▼─────────────────────────────────────┐
 │                        Services                                  │
 │  DirectoryVM ──▶ FileSystemService  ◀── ClipboardManager        │
+│  DirectoryVM ──▶ ICloudStatusService                            │
 │  SidebarVM ───▶ FavoritesManager                                │
 │  DirectoryVM ──▶ DirectoryWatcher                               │
 │  Views ────────▶ FileMoveService (stateless)                    │
