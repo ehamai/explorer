@@ -69,6 +69,8 @@ struct MainView: View {
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 110)
+
+                sortMenu(for: tab.directoryVM)
             }
         }
 
@@ -86,6 +88,8 @@ struct MainView: View {
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 110)
+
+                    sortMenu(for: tab.directoryVM)
                 }
             }
         }
@@ -120,6 +124,27 @@ struct MainView: View {
             .disabled(tab?.navigationVM.canGoUp != true)
             .help("Enclosing Folder")
         }
+    }
+
+    private func sortMenu(for directoryVM: DirectoryViewModel) -> some View {
+        Menu {
+            ForEach(SortField.allCases) { field in
+                Button {
+                    directoryVM.sort(by: field)
+                } label: {
+                    HStack {
+                        Text(field.label)
+                        if directoryVM.sortDescriptor.field == field {
+                            Image(systemName: directoryVM.sortDescriptor.order == .ascending
+                                  ? "chevron.up" : "chevron.down")
+                        }
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "arrow.up.arrow.down")
+        }
+        .help("Sort by \(directoryVM.sortDescriptor.field.label) (\(directoryVM.sortDescriptor.order.label))")
     }
 
     // MARK: - Double-Click Handler
