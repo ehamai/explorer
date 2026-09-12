@@ -2,9 +2,13 @@
 # build-pkg.sh — Create a .pkg installer for Explorer
 set -euo pipefail
 
+cd "$(dirname "$0")"
+
 APP_NAME="Explorer"
 BUNDLE_ID="com.explorer.app"
-VERSION="${1:-1.0.0}"
+
+source ./version-lib.sh
+resolve_version "$@"
 PKG_NAME="${APP_NAME}-${VERSION}.pkg"
 
 echo "=== Building ${PKG_NAME} ==="
@@ -50,6 +54,7 @@ rm -f "${APP_NAME}-component.pkg"
 rm -rf "$STAGING"
 rm -rf "${APP_NAME}.app"
 
+save_version
 echo "✅ Built ${PKG_NAME}"
 echo ""
 echo "Install with:"

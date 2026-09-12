@@ -4,7 +4,7 @@ set -euo pipefail
 
 APP_NAME="Explorer"
 BUNDLE_ID="com.explorer.app"
-VERSION="${1:-1.0.0}"
+VERSION="${1:-$(tr -d '[:space:]' < "$(dirname "$0")/VERSION")}"
 APP_BUNDLE="${APP_NAME}.app"
 CONTENTS="${APP_BUNDLE}/Contents"
 MACOS_DIR="${CONTENTS}/MacOS"
