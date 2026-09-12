@@ -58,6 +58,7 @@ struct PaneView: View {
                 }
 
             ContentAreaView()
+                .id(tab.id)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Divider()

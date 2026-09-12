@@ -155,6 +155,13 @@ struct MainView: View {
         let ow = openWindow
         Self._doubleClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
             if event.clickCount == 2 {
+                // Ignore double-clicks in the titlebar/toolbar area
+                if let window = event.window {
+                    let locationInWindow = event.locationInWindow
+                    let contentRect = window.contentLayoutRect
+                    guard contentRect.contains(locationInWindow) else { return event }
+                }
+
                 Task { @MainActor in
                     guard let (tab, selected) = sm.resolveDoubleClickTarget() else { return }
                     for item in selected {

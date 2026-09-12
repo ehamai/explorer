@@ -94,7 +94,7 @@ final class ThumbnailLoader {
     func loadAspectRatios(for items: [FileItem], into viewModel: DirectoryViewModel) {
         for item in items {
             let mediaType = MediaFileType.detect(from: item.url)
-            guard mediaType.isMedia, viewModel.aspectRatios[item.url] == nil else { continue }
+            guard mediaType.hasThumbnail, viewModel.aspectRatios[item.url] == nil else { continue }
             loadAspectRatio(for: item.url, into: viewModel)
         }
     }

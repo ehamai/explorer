@@ -16,7 +16,7 @@ The Models layer defines the data structures and state managers that form the ba
 | TabManager | class | TabManager.swift | ✓ | Manages tabs within a pane |
 | PaneState | struct | SplitScreenManager.swift | — | Container pairing pane ID + tab manager |
 | SplitScreenManager | class | SplitScreenManager.swift | ✓ | Manages split-screen layout and pane activation |
-| MediaFileType | enum | MediaFileType.swift | — | Image/video/unsupported file type detection |
+| MediaFileType | enum | MediaFileType.swift | — | Image/video/PDF/unsupported file type detection |
 | MediaViewerContext | struct | MediaViewerContext.swift | — | Codable value for opening media viewer windows |
 | MosaicLayout | enum | MosaicLayout.swift | — | Justified row layout algorithm for mosaic view |
 | ICloudStatus | enum | ICloudStatus.swift | — | iCloud Drive sync status for a file |
@@ -179,6 +179,8 @@ Observable class managing an array of BrowserTabs within a single pane. Ensures 
 | addTab(url: URL?) | Creates new tab, activates it, triggers async directory load |
 | closeTab(id: UUID) | Removes tab (guards against closing last tab), updates activeTabID |
 | closeActiveTab() | Convenience wrapper for closeTab |
+| nextTab() | Activates the next tab, wrapping around to the first |
+| previousTab() | Activates the previous tab, wrapping around to the last |
 | reloadTabs(showing url: URL) | Reloads all tabs displaying the specified URL |
 
 ### Invariants
@@ -267,14 +269,15 @@ SplitScreenManager (@Observable)
 ## MediaFileType (MediaFileType.swift)
 
 ### Purpose
-Enum for detecting whether a file is an image, video, or unsupported type. Used to decide whether to open files in the built-in media viewer.
+Enum for detecting whether a file is an image, video, PDF, or unsupported type. Used to decide whether to open files in the built-in media viewer and whether to generate thumbnail previews.
 
 ### Cases
 | Case | Description |
 |------|-------------|
 | .image | Recognized image format |
 | .video | Recognized video format |
-| .unsupported | Not a viewable media file |
+| .pdf | PDF document |
+| .unsupported | Not a viewable media file or thumbnailable document |
 
 ### Static Methods
 | Method | Return | Logic |
@@ -283,11 +286,13 @@ Enum for detecting whether a file is an image, video, or unsupported type. Used 
 | fromExtension(String) | MediaFileType | Extension-based lookup against known sets |
 
 ### Computed Properties
-- `isMedia: Bool` — true for .image or .video
+- `isMedia: Bool` — true for .image or .video (files viewable in the built-in media viewer)
+- `hasThumbnail: Bool` — true for .image, .video, or .pdf (files that support thumbnail preview generation)
 
 ### Supported Formats
 - **Images**: jpg, jpeg, png, gif, tiff, tif, bmp, heic, heif, webp, ico, svg, raw, cr2, nef, arw, dng
 - **Videos**: mp4, mov, m4v, avi, mkv, wmv, flv, webm, mpeg, mpg, 3gp
+- **PDF**: pdf
 
 Conformances: Hashable, Sendable
 
@@ -390,6 +395,15 @@ struct LayoutRow: Identifiable {
     let items: [LayoutItem]
 }
 ```
+
+### MosaicLayoutItem Properties
+| Property | Type | Purpose |
+|----------|------|---------|
+| id | URL | File URL identifier |
+| width | CGFloat | Computed width for this item in the row |
+| height | CGFloat | Computed height (same for all items in a justified row) |
+| aspectRatio | CGFloat | Width/height ratio used for layout |
+| hasThumbnail | Bool | Whether this item supports thumbnail rendering (images, videos, PDFs) |
 
 ### Static Methods
 | Method | Return | Purpose |

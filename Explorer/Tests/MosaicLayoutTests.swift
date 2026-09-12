@@ -9,9 +9,9 @@ struct MosaicLayoutTests {
     // MARK: - Helpers
 
     private func makeItem(
-        _ name: String, aspectRatio: CGFloat, isMedia: Bool = true
-    ) -> (id: URL, aspectRatio: CGFloat, isMedia: Bool) {
-        (id: URL(fileURLWithPath: "/test/\(name)"), aspectRatio: aspectRatio, isMedia: isMedia)
+        _ name: String, aspectRatio: CGFloat, hasThumbnail: Bool = true
+    ) -> (id: URL, aspectRatio: CGFloat, hasThumbnail: Bool) {
+        (id: URL(fileURLWithPath: "/test/\(name)"), aspectRatio: aspectRatio, hasThumbnail: hasThumbnail)
     }
 
     // MARK: - Empty / invalid input
@@ -148,7 +148,7 @@ struct MosaicLayoutTests {
     // MARK: - Non-media
 
     @Test func nonMediaItemsUseSquareAspectRatio() {
-        let items = [makeItem("doc.pdf", aspectRatio: 3.0, isMedia: false)]
+        let items = [makeItem("doc.pdf", aspectRatio: 3.0, hasThumbnail: false)]
         let rows = computeJustifiedRows(
             items: items, containerWidth: 800, targetRowHeight: 200)
         #expect(rows.count == 1)
@@ -201,16 +201,16 @@ struct MosaicLayoutTests {
 
     // MARK: - Media flag preservation
 
-    @Test func preservesMediaFlag() {
+    @Test func preservesThumbnailFlag() {
         let items = [
-            makeItem("photo.jpg", aspectRatio: 1.5, isMedia: true),
-            makeItem("doc.txt", aspectRatio: 2.0, isMedia: false),
+            makeItem("photo.jpg", aspectRatio: 1.5, hasThumbnail: true),
+            makeItem("doc.txt", aspectRatio: 2.0, hasThumbnail: false),
         ]
         let rows = computeJustifiedRows(items: items, containerWidth: 800, targetRowHeight: 200)
         let allItems = rows.flatMap { $0.items }
         let photo = allItems.first { $0.id.lastPathComponent == "photo.jpg" }
         let doc = allItems.first { $0.id.lastPathComponent == "doc.txt" }
-        #expect(photo?.isMedia == true)
-        #expect(doc?.isMedia == false)
+        #expect(photo?.hasThumbnail == true)
+        #expect(doc?.hasThumbnail == false)
     }
 }

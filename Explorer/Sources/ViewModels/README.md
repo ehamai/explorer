@@ -116,6 +116,16 @@ Triggered automatically by didSet observers on: sortDescriptor, showHidden, sear
 #### selectAll() / clearSelection()
 Select all visible items / clear selection set.
 
+#### dragURLs(for:) / handleMouseDown(on:command:shift:) / handleClick(on:command:shift:)
+Finder-style selection for the icon and mosaic views. `dragURLs(for:)` returns the full selection when the item is selected, otherwise just the item. On mouse-down:
+- **Shift:** select every visible item from `selectionAnchor` to the item, in display (`items`) order. Command+Shift adds the range to the selection. With no anchor, it selects just the item.
+- **Command:** toggle the item; an added item becomes the anchor.
+- **Neither:** an unselected item becomes the only selection; pressing an already-selected item keeps the selection so a drag carries all of it.
+
+A plain click (mouse-up with no drag, no modifiers) narrows the selection to the item.
+
+`selectionAnchor` is kept by a `didSet` on `selectedItems`: any single-item selection (click, arrow keys, directory load) becomes the anchor, and clearing the selection clears it.
+
 #### navigateMosaicSelection(direction:)
 Arrow key navigation for mosaic view. Moves selection between items in the justified grid layout (up/down across rows, left/right within rows). Wraps at row boundaries.
 

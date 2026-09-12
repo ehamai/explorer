@@ -144,4 +144,68 @@ struct ThumbnailServiceTests {
         #expect(first != nil)
         #expect(first == second)
     }
+
+    // MARK: - PDF Aspect Ratio
+
+    /// Create a minimal single-page PDF at the given URL with the specified dimensions.
+    private func createPDF(at url: URL, width: CGFloat, height: CGFloat) throws {
+        let rect = CGRect(x: 0, y: 0, width: width, height: height)
+        guard let context = CGContext(url as CFURL, mediaBox: nil, nil) else {
+            throw ThumbnailError.generationFailed
+        }
+        var mediaBox = rect
+        context.beginPage(mediaBox: &mediaBox)
+        context.setFillColor(CGColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1))
+        context.fill(rect)
+        context.endPage()
+        context.closePDF()
+    }
+
+    @Test func aspectRatioForPdfFile() async throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+
+        let pdfURL = dir.appendingPathComponent("test.pdf")
+        try createPDF(at: pdfURL, width: 612, height: 792) // US Letter
+
+        let service = ThumbnailService(cacheDirectory: dir.appendingPathComponent("cache"))
+        let ratio = await service.aspectRatio(for: pdfURL)
+
+        #expect(ratio != nil)
+        if let ratio {
+            // Letter: 612/792 ≈ 0.773
+            #expect(abs(ratio - 612.0 / 792.0) < 0.01)
+        }
+    }
+
+    @Test func aspectRatioForLandscapePdf() async throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+
+        let pdfURL = dir.appendingPathComponent("landscape.pdf")
+        try createPDF(at: pdfURL, width: 842, height: 595) // A4 landscape
+
+        let service = ThumbnailService(cacheDirectory: dir.appendingPathComponent("cache"))
+        let ratio = await service.aspectRatio(for: pdfURL)
+
+        #expect(ratio != nil)
+        if let ratio {
+            #expect(abs(ratio - 842.0 / 595.0) < 0.01)
+        }
+    }
+
+    @Test func loadThumbnailForPdfFile() async throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+
+        let cacheDir = try TestHelpers.createFolder("cache", in: dir)
+        let pdfURL = dir.appendingPathComponent("test.pdf")
+        try createPDF(at: pdfURL, width: 612, height: 792)
+
+        let service = ThumbnailService(cacheDirectory: cacheDir)
+        let modDate = try FileManager.default.attributesOfItem(atPath: pdfURL.path)[.modificationDate] as! Date
+
+        let thumbnail = await service.loadThumbnail(for: pdfURL, modificationDate: modDate)
+        #expect(thumbnail != nil)
+    }
 }

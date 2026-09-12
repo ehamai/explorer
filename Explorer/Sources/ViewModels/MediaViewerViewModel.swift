@@ -131,7 +131,7 @@ final class MediaViewerViewModel {
             player = queuePlayer
             configureLooping()
 
-        case .unsupported:
+        case .unsupported, .pdf:
             errorMessage = "Unsupported file type"
         }
 

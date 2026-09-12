@@ -324,6 +324,8 @@ Bypass with `git commit --no-verify` (not recommended).
 |----------|--------|---------|
 | Cmd+T | New Tab | Always |
 | Cmd+W | Close Tab / Window | Close tab if >1, else window |
+| Ctrl+Tab | Next Tab | When multiple tabs open |
+| Ctrl+Shift+Tab | Previous Tab | When multiple tabs open |
 | Cmd+Shift+N | New Folder | Always |
 | Cmd+\ | Toggle Split View | Always |
 | Cmd+[ | Go Back | When canGoBack |

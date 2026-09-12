@@ -334,4 +334,252 @@ struct DirectoryViewModelTests {
         let isInSecondRow = vm.mosaicRows[1].items.contains { $0.id == newID }
         #expect(isInSecondRow, "New selection should be in second row")
     }
+
+    // MARK: - Grid Keyboard Navigation
+
+    @Test @MainActor func navigateGridNoItemsIsNoOp() {
+        let vm = DirectoryViewModel()
+        vm.navigateGridSelection(direction: .right, columnCount: 3)
+        #expect(vm.selectedItems.isEmpty)
+    }
+
+    @Test @MainActor func navigateGridNoSelectionSelectsFirst() async throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        _ = try TestHelpers.createFile("a.txt", in: dir)
+        _ = try TestHelpers.createFile("b.txt", in: dir)
+
+        let vm = DirectoryViewModel()
+        await vm.loadDirectory(url: dir)
+        vm.selectedItems.removeAll()
+
+        vm.navigateGridSelection(direction: .right, columnCount: 3)
+        #expect(vm.selectedItems.count == 1)
+        #expect(vm.selectedItems.first == vm.items.first?.id)
+    }
+
+    @Test @MainActor func navigateGridRightMovesToNext() async throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        _ = try TestHelpers.createFile("a.txt", in: dir)
+        _ = try TestHelpers.createFile("b.txt", in: dir)
+        _ = try TestHelpers.createFile("c.txt", in: dir)
+
+        let vm = DirectoryViewModel()
+        await vm.loadDirectory(url: dir)
+
+        vm.selectedItems = [vm.items[0].id]
+        vm.navigateGridSelection(direction: .right, columnCount: 3)
+        #expect(vm.selectedItems.first == vm.items[1].id)
+    }
+
+    @Test @MainActor func navigateGridLeftAtStartIsNoOp() async throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        _ = try TestHelpers.createFile("a.txt", in: dir)
+
+        let vm = DirectoryViewModel()
+        await vm.loadDirectory(url: dir)
+
+        let firstID = vm.items[0].id
+        vm.selectedItems = [firstID]
+        vm.navigateGridSelection(direction: .left, columnCount: 3)
+        #expect(vm.selectedItems.first == firstID)
+    }
+
+    @Test @MainActor func navigateGridDownMovesToNextRow() async throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        for i in 0..<6 {
+            _ = try TestHelpers.createFile("file\(i).txt", in: dir)
+        }
+
+        let vm = DirectoryViewModel()
+        await vm.loadDirectory(url: dir)
+
+        // Select first item, navigate down with 3 columns → should jump to index 3
+        vm.selectedItems = [vm.items[0].id]
+        vm.navigateGridSelection(direction: .down, columnCount: 3)
+        #expect(vm.selectedItems.first == vm.items[3].id)
+    }
+
+    @Test @MainActor func navigateGridUpMovesToPreviousRow() async throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        for i in 0..<6 {
+            _ = try TestHelpers.createFile("file\(i).txt", in: dir)
+        }
+
+        let vm = DirectoryViewModel()
+        await vm.loadDirectory(url: dir)
+
+        // Select item at index 3, navigate up with 3 columns → should jump to index 0
+        vm.selectedItems = [vm.items[3].id]
+        vm.navigateGridSelection(direction: .up, columnCount: 3)
+        #expect(vm.selectedItems.first == vm.items[0].id)
+    }
+
+    @Test @MainActor func navigateGridDownBeyondEndIsNoOp() async throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+        _ = try TestHelpers.createFile("a.txt", in: dir)
+        _ = try TestHelpers.createFile("b.txt", in: dir)
+
+        let vm = DirectoryViewModel()
+        await vm.loadDirectory(url: dir)
+
+        let lastID = vm.items.last!.id
+        vm.selectedItems = [lastID]
+        vm.navigateGridSelection(direction: .down, columnCount: 3)
+        #expect(vm.selectedItems.first == lastID)
+    }
+}
+
+@Suite("DirectoryViewModel drag & click selection")
+@MainActor
+struct DirectoryViewModelDragSelectionTests {
+
+    private func loadedVM(fileCount: Int) async throws -> (DirectoryViewModel, URL) {
+        let dir = try TestHelpers.makeTempDir()
+        for i in 0..<fileCount {
+            try TestHelpers.createFile("file\(i).txt", in: dir)
+        }
+        let vm = DirectoryViewModel()
+        await vm.loadDirectory(url: dir)
+        return (vm, dir)
+    }
+
+    @Test func dragURLsReturnsWholeSelectionWhenItemIsSelected() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 3)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.selectedItems = [vm.items[0].id, vm.items[2].id]
+        let urls = vm.dragURLs(for: vm.items[2])
+        #expect(Set(urls) == [vm.items[0].url, vm.items[2].url])
+    }
+
+    @Test func dragURLsReturnsOnlyItemWhenNotSelected() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 3)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.selectedItems = [vm.items[0].id, vm.items[2].id]
+        #expect(vm.dragURLs(for: vm.items[1]) == [vm.items[1].url])
+    }
+
+    @Test func mouseDownOnUnselectedItemSelectsOnlyIt() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 3)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.selectedItems = [vm.items[0].id, vm.items[2].id]
+        vm.handleMouseDown(on: vm.items[1].id, command: false, shift: false)
+        #expect(vm.selectedItems == [vm.items[1].id])
+    }
+
+    @Test func mouseDownOnSelectedItemKeepsSelectionForDrag() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 3)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.selectedItems = [vm.items[0].id, vm.items[2].id]
+        vm.handleMouseDown(on: vm.items[2].id, command: false, shift: false)
+        #expect(vm.selectedItems == [vm.items[0].id, vm.items[2].id])
+    }
+
+    @Test func commandMouseDownTogglesItem() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 3)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.selectedItems = [vm.items[0].id]
+        vm.handleMouseDown(on: vm.items[1].id, command: true, shift: false)
+        #expect(vm.selectedItems == [vm.items[0].id, vm.items[1].id])
+
+        vm.handleMouseDown(on: vm.items[0].id, command: true, shift: false)
+        #expect(vm.selectedItems == [vm.items[1].id])
+    }
+
+    @Test func plainClickNarrowsMultiSelection() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 3)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.selectedItems = [vm.items[0].id, vm.items[2].id]
+        vm.handleClick(on: vm.items[2].id, command: false, shift: false)
+        #expect(vm.selectedItems == [vm.items[2].id])
+    }
+
+    @Test func commandClickLeavesSelectionUnchanged() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 3)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.selectedItems = [vm.items[0].id, vm.items[2].id]
+        vm.handleClick(on: vm.items[2].id, command: true, shift: false)
+        #expect(vm.selectedItems == [vm.items[0].id, vm.items[2].id])
+    }
+    // MARK: - Shift-click range
+
+    @Test func shiftClickSelectsRangeForward() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 5)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.handleMouseDown(on: vm.items[1].id, command: false, shift: false)
+        vm.handleMouseDown(on: vm.items[3].id, command: false, shift: true)
+        #expect(vm.selectedItems == Set(vm.items[1...3].map(\.id)))
+    }
+
+    @Test func shiftClickSelectsRangeBackward() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 5)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.handleMouseDown(on: vm.items[3].id, command: false, shift: false)
+        vm.handleMouseDown(on: vm.items[0].id, command: false, shift: true)
+        #expect(vm.selectedItems == Set(vm.items[0...3].map(\.id)))
+        #expect(vm.selectionAnchor == vm.items[3].id)
+    }
+
+    @Test func commandShiftClickAddsRange() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 6)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.handleMouseDown(on: vm.items[0].id, command: false, shift: false)
+        vm.handleMouseDown(on: vm.items[4].id, command: true, shift: false)
+        vm.handleMouseDown(on: vm.items[5].id, command: true, shift: true)
+        #expect(vm.selectedItems == [vm.items[0].id, vm.items[4].id, vm.items[5].id])
+    }
+
+    @Test func shiftClickWithoutAnchorSelectsOnlyItem() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 3)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.clearSelection()
+        #expect(vm.selectionAnchor == nil)
+        vm.handleMouseDown(on: vm.items[2].id, command: false, shift: true)
+        #expect(vm.selectedItems == [vm.items[2].id])
+    }
+
+    @Test func commandClickAddedItemBecomesAnchor() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 6)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.handleMouseDown(on: vm.items[0].id, command: false, shift: false)
+        vm.handleMouseDown(on: vm.items[3].id, command: true, shift: false)
+        vm.handleMouseDown(on: vm.items[5].id, command: false, shift: true)
+        #expect(vm.selectedItems == Set(vm.items[3...5].map(\.id)))
+    }
+
+    @Test func shiftClickUpLeavesSelectionUnchanged() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 5)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.handleMouseDown(on: vm.items[1].id, command: false, shift: false)
+        vm.handleMouseDown(on: vm.items[3].id, command: false, shift: true)
+        vm.handleClick(on: vm.items[3].id, command: false, shift: true)
+        #expect(vm.selectedItems == Set(vm.items[1...3].map(\.id)))
+    }
+
+    @Test func arrowKeySelectionSetsAnchor() async throws {
+        let (vm, dir) = try await loadedVM(fileCount: 6)
+        defer { TestHelpers.cleanup(dir) }
+
+        vm.selectedItems = [vm.items[0].id]
+        vm.navigateGridSelection(direction: .right, columnCount: 3)
+        #expect(vm.selectionAnchor == vm.items[1].id)
+    }
 }

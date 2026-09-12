@@ -9,6 +9,7 @@ Conditional container switching between display states:
 2. `items.isEmpty` → "Folder is empty" placeholder
 3. `viewMode == .list` → FileListView
 4. `viewMode == .icon` → IconGridView
+5. `viewMode == .mosaic` → MosaicView
 
 ```
 State Machine:
@@ -80,6 +81,7 @@ Grid-based file display with large icons.
 **Key Features:**
 - Custom double-click detection (0.4s threshold between clicks)
 - Command-key multi-selection toggle
+- Arrow key navigation (left/right/up/down) with automatic scroll-to-selection
 - Same context menu, drag/drop, rename, and visual feedback as FileListView
 - ICloudStatusBadge displayed on icon cells for files in iCloud Drive
 
@@ -103,7 +105,28 @@ Grid-based file display with large icons.
 └─────────────────────────────────────────────────────────┘
 ```
 
-**IconCell Subview:** 64pt icon + 2-line text label, rounded rectangle background for selection/drop state.
+**IconCell Subview:** 64pt icon (or PDF thumbnail when available) + 2-line text label, rounded rectangle background for selection/drop state. For PDF files, thumbnails are loaded asynchronously via ThumbnailCache/ThumbnailLoader and displayed in place of the system icon.
 
-**Environment:** Same as FileListView
-**Local State:** Same as FileListView + `lastClickItem`, `lastClickTime` (double-click detection)
+**Environment:** Same as FileListView. IconCell additionally uses ThumbnailCache and ThumbnailLoader for PDF thumbnail loading.
+**Mouse & Drag:** Each cell has a `FileDragSource` overlay (Helpers) that handles left-mouse input: mouse-down selection via `DirectoryViewModel.handleMouseDown`, click/double-click via native `clickCount`, and a native multi-item drag of `DirectoryViewModel.dragURLs(for:)` (stacked drag images with a count badge). Right-click still reaches the SwiftUI context menu.
+
+**Local State:** Same as FileListView + `focusTrigger`, `gridWidth`
+
+## MosaicView (MosaicView.swift)
+
+Justified row gallery layout with thumbnail previews for media files and PDFs.
+
+**Layout:** ScrollViewReader wrapping ScrollView with LazyVStack. Rows are precomputed by `DirectoryViewModel.mosaicRows` using the justified row algorithm from `MosaicLayout`.
+
+**Key Features:**
+- Thumbnail cells for images, videos, and PDFs (via MosaicThumbnailView)
+- Non-media cells (folders, documents) show icon + label
+- Pinch-to-zoom adjusts target row height (100–500px)
+- Arrow key navigation with automatic scroll-to-selection via ScrollViewReader
+- Same `FileDragSource` mouse/drag handling as IconGridView (multi-file drag with count badge)
+- Folder cells are drop targets (highlighted via `MosaicThumbnailView.isDropTarget`); drops move files into that folder. The background is a drop target for the current directory.
+- Context menus
+- Aspect ratios loaded asynchronously for correct justified layout
+
+**Environment:** `DirectoryViewModel`, `NavigationViewModel`, `ClipboardManager`, `FavoritesManager`, `SplitScreenManager`, `ThumbnailCache`, `ThumbnailLoader`
+**Local State:** `itemToRename`, `renameName`, `showRenameAlert`, `dropTargetID`, `isBackgroundDropTarget`, `focusTrigger`

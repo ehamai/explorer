@@ -58,3 +58,24 @@ Compact badge view showing a file's iCloud sync status using an SF Symbol.
 - Hidden for `.local` status (no badge displayed)
 
 **Stateless** — no environment dependencies. Used by FileListView, IconGridView, MosaicView, and InspectorView.
+
+## MosaicThumbnailView (MosaicThumbnailView.swift)
+
+Cell view for the mosaic gallery layout. Renders differently based on whether the file supports thumbnails.
+
+**Props:** `MosaicLayoutItem`, `FileItem`, `isSelected: Bool`, `isCut: Bool`, `isDropTarget: Bool` (default `false`; accent fill + border while a drag hovers a folder cell)
+
+**Thumbnail Cell** (images, videos, PDFs — `hasThumbnail == true`):
+- Full-bleed thumbnail loaded asynchronously via ThumbnailCache/ThumbnailLoader
+- Placeholder: system file icon while thumbnail loads
+- Bottom-left: last modified date shown only for non-media files (PDFs); hidden for images/videos
+- Bottom-right badges: play.circle.fill for videos, doc.text.fill for PDFs
+- Background: black for images/videos, controlBackgroundColor for PDFs
+
+**Non-Thumbnail Cell** (folders, other files — `hasThumbnail == false`):
+- Centered FileIconView (48pt max) + filename + date/item count
+- Bordered card style with separator stroke
+
+**Drag:** Handled by the parent `MosaicView`, which overlays a `FileDragSource` (Helpers) on each cell. Dragging a selected item starts a native multi-item drag of all selected files (stacked images + count badge).
+
+**Environment:** `ThumbnailCache`, `ThumbnailLoader`

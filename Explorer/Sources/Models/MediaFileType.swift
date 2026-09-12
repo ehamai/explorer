@@ -4,9 +4,10 @@ import UniformTypeIdentifiers
 enum MediaFileType: Hashable, Sendable {
     case image
     case video
+    case pdf
     case unsupported
 
-    /// Detect whether a URL points to an image, video, or unsupported file.
+    /// Detect whether a URL points to an image, video, PDF, or unsupported file.
     static func detect(from url: URL) -> MediaFileType {
         guard let values = try? url.resourceValues(forKeys: [.typeIdentifierKey]),
               let typeIdentifier = values.typeIdentifier,
@@ -16,6 +17,7 @@ enum MediaFileType: Hashable, Sendable {
 
         if utType.conforms(to: .image) { return .image }
         if utType.conforms(to: .movie) || utType.conforms(to: .video) { return .video }
+        if utType.conforms(to: .pdf) { return .pdf }
         return .unsupported
     }
 
@@ -24,10 +26,15 @@ enum MediaFileType: Hashable, Sendable {
         let lower = ext.lowercased()
         if imageExtensions.contains(lower) { return .image }
         if videoExtensions.contains(lower) { return .video }
+        if lower == "pdf" { return .pdf }
         return .unsupported
     }
 
-    var isMedia: Bool { self != .unsupported }
+    /// True for images and videos — files viewable in the built-in media viewer.
+    var isMedia: Bool { self == .image || self == .video }
+
+    /// True for file types that support thumbnail preview generation.
+    var hasThumbnail: Bool { self == .image || self == .video || self == .pdf }
 
     private static let imageExtensions: Set<String> = [
         "jpg", "jpeg", "png", "gif", "tiff", "tif", "bmp", "heic", "heif",

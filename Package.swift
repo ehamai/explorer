@@ -13,7 +13,7 @@ let package = Package(
         .executableTarget(
             name: "Explorer",
             path: "Explorer/Sources",
-            exclude: ["README.md", "Models/README.md", "Views/README.md", "Views/Components/README.md", "Views/Content/README.md", "Views/Sidebar/README.md", "Views/StatusBar/README.md", "Views/Toolbar/README.md", "ViewModels/README.md", "Services/README.md", "Helpers/README.md"],
+            exclude: ["README.md", "Models/README.md", "Views/README.md", "Views/Components/README.md", "Views/Content/README.md", "Views/MediaViewer/README.md", "Views/Sidebar/README.md", "Views/StatusBar/README.md", "Views/Toolbar/README.md", "ViewModels/README.md", "Services/README.md", "Helpers/README.md"],
             resources: [
                 .process("../Resources"),
                 .process("AppIcon.icns")

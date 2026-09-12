@@ -31,7 +31,7 @@ TestHelpers.makeFileItem(name:isDirectory:isHidden:size:dateModified:kind:basePa
 
 | Suite | File | @MainActor | Tests | Component |
 |-------|------|:---:|:---:|-----------|
-| DirectoryViewModel loading state | DirectoryViewModelTests.swift | ✓ | 18 | DirectoryViewModel |
+| DirectoryViewModel loading state | DirectoryViewModelTests.swift | ✓ | 26 | DirectoryViewModel loading, mosaic nav, grid nav |
 | DirectoryViewModel sort and filter | DirectoryViewModelSortFilterTests.swift | ✓ | 22 | DirectoryViewModel |
 | FileMoveService | FileMoveServiceTests.swift | — | 12 | FileMoveService |
 | Pasteboard command behaviors | PasteboardCommandTests.swift | ✓ | 8 | DirectoryViewModel + ClipboardManager |
@@ -44,15 +44,15 @@ TestHelpers.makeFileItem(name:isDirectory:isHidden:size:dateModified:kind:basePa
 | ViewMode | ViewModeTests.swift | — | 5 | ViewMode |
 | FileSortDescriptor | FileSortDescriptorTests.swift | — | 15 | FileSortDescriptor |
 | FileItem | FileItemTests.swift | — | 17 | FileItem |
-| TabManager | TabManagerTests.swift | ✓ | 15 | TabManager |
+| TabManager | TabManagerTests.swift | ✓ | 19 | TabManager incl. next/previous tab cycling |
 | FavoritesManager | FavoritesManagerTests.swift | — | 15 | FavoritesManager |
 | SidebarViewModel | SidebarViewModelTests.swift | — | 10 | SidebarViewModel |
 | DirectoryWatcher | DirectoryWatcherTests.swift | — | 6 | DirectoryWatcher |
-| MediaFileType Tests | MediaFileTypeTests.swift | — | 9 | MediaFileType |
+| MediaFileType Tests | MediaFileTypeTests.swift | — | 14 | MediaFileType detection including PDF, isMedia/hasThumbnail |
 | MediaViewerViewModel Tests | MediaViewerViewModelTests.swift | ✓ | 47 | MediaViewerViewModel + MediaViewerContext |
 | MosaicLayout | MosaicLayoutTests.swift | — | 16 | MosaicLayout row computation |
-| ThumbnailService | ThumbnailServiceTests.swift | — | 8 | ThumbnailService generation + caching |
+| ThumbnailService | ThumbnailServiceTests.swift | — | 11 | ThumbnailService generation + caching + PDF aspect ratio |
 | ThumbnailCache | ThumbnailCacheTests.swift | — | 6 | ThumbnailCache NSCache wrapper |
 | ThumbnailLoader | ThumbnailLoaderTests.swift | ✓ | 11 | ThumbnailLoader concurrency, caching, cancellation |
 | ICloudStatus | ICloudStatusTests.swift | — | 15 | ICloudStatus enum properties and conformances |
-| | **Total** | | **339** | |
+| | **Total** | | **411** | |

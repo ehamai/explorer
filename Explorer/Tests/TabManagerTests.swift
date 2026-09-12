@@ -165,4 +165,64 @@ struct TabManagerTests {
         // When closing the last tab in the list, active should move to the previous one
         #expect(manager.activeTabID == previousID)
     }
+
+    // MARK: - Next / Previous Tab
+
+    @Test func nextTabCyclesForward() {
+        let manager = TabManager()
+        manager.addTab()
+        manager.addTab()
+        #expect(manager.tabs.count == 3)
+
+        // Activate first tab
+        let firstID = manager.tabs[0].id
+        let secondID = manager.tabs[1].id
+        let thirdID = manager.tabs[2].id
+        manager.activeTabID = firstID
+
+        manager.nextTab()
+        #expect(manager.activeTabID == secondID)
+
+        manager.nextTab()
+        #expect(manager.activeTabID == thirdID)
+
+        // Wraps around to first
+        manager.nextTab()
+        #expect(manager.activeTabID == firstID)
+    }
+
+    @Test func previousTabCyclesBackward() {
+        let manager = TabManager()
+        manager.addTab()
+        manager.addTab()
+
+        let firstID = manager.tabs[0].id
+        let secondID = manager.tabs[1].id
+        let thirdID = manager.tabs[2].id
+        manager.activeTabID = firstID
+
+        // Wraps to last
+        manager.previousTab()
+        #expect(manager.activeTabID == thirdID)
+
+        manager.previousTab()
+        #expect(manager.activeTabID == secondID)
+
+        manager.previousTab()
+        #expect(manager.activeTabID == firstID)
+    }
+
+    @Test func nextTabSingleTabIsNoOp() {
+        let manager = TabManager()
+        let onlyID = manager.tabs[0].id
+        manager.nextTab()
+        #expect(manager.activeTabID == onlyID)
+    }
+
+    @Test func previousTabSingleTabIsNoOp() {
+        let manager = TabManager()
+        let onlyID = manager.tabs[0].id
+        manager.previousTab()
+        #expect(manager.activeTabID == onlyID)
+    }
 }

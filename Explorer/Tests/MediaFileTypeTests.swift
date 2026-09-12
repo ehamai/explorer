@@ -27,11 +27,17 @@ struct MediaFileTypeTests {
     }
 
     @Test func unsupportedExtensionsReturnUnsupported() {
-        let unsupported = ["txt", "pdf", "doc", "swift", "json", "zip", ""]
+        let unsupported = ["txt", "doc", "swift", "json", "zip", ""]
         for ext in unsupported {
             let result = MediaFileType.fromExtension(ext)
             #expect(result == .unsupported, "Expected .unsupported for extension '\(ext)', got \(result)")
         }
+    }
+
+    @Test func pdfExtensionDetectedCorrectly() {
+        #expect(MediaFileType.fromExtension("pdf") == .pdf)
+        #expect(MediaFileType.fromExtension("PDF") == .pdf)
+        #expect(MediaFileType.fromExtension("Pdf") == .pdf)
     }
 
     @Test func extensionDetectionIsCaseInsensitive() {
@@ -44,7 +50,15 @@ struct MediaFileTypeTests {
     @Test func isMediaProperty() {
         #expect(MediaFileType.image.isMedia == true)
         #expect(MediaFileType.video.isMedia == true)
+        #expect(MediaFileType.pdf.isMedia == false)
         #expect(MediaFileType.unsupported.isMedia == false)
+    }
+
+    @Test func hasThumbnailProperty() {
+        #expect(MediaFileType.image.hasThumbnail == true)
+        #expect(MediaFileType.video.hasThumbnail == true)
+        #expect(MediaFileType.pdf.hasThumbnail == true)
+        #expect(MediaFileType.unsupported.hasThumbnail == false)
     }
 
     // MARK: - URL-based detection with real files
@@ -100,5 +114,20 @@ struct MediaFileTypeTests {
         let fakeURL = URL(fileURLWithPath: "/nonexistent/photo.jpg")
         let result = MediaFileType.detect(from: fakeURL)
         #expect(result == .image)
+    }
+
+    @Test func detectPdfFromRealFile() throws {
+        let dir = try TestHelpers.makeTempDir()
+        defer { TestHelpers.cleanup(dir) }
+
+        let pdfFile = try TestHelpers.createFile("document.pdf", in: dir)
+        let result = MediaFileType.detect(from: pdfFile)
+        #expect(result == .pdf)
+    }
+
+    @Test func detectNonExistentPdfUsesExtensionFallback() {
+        let fakeURL = URL(fileURLWithPath: "/nonexistent/doc.pdf")
+        let result = MediaFileType.detect(from: fakeURL)
+        #expect(result == .pdf)
     }
 }

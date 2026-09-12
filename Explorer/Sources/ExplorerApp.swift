@@ -74,6 +74,16 @@ struct ExplorerApp: App {
                 }
                 .keyboardShortcut("w", modifiers: .command)
 
+                Button("Show Next Tab") {
+                    splitManager.activeTabManager.nextTab()
+                }
+                .keyboardShortcut(KeyEquivalent("\t"), modifiers: .control)
+
+                Button("Show Previous Tab") {
+                    splitManager.activeTabManager.previousTab()
+                }
+                .keyboardShortcut(KeyEquivalent("\t"), modifiers: [.control, .shift])
+
                 Divider()
 
                 Button("New Folder") {

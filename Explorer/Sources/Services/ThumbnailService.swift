@@ -236,6 +236,8 @@ actor ThumbnailService {
             return imageAspectRatio(for: url)
         } else if uttype.conforms(to: .movie) || uttype.conforms(to: .video) {
             return await videoAspectRatio(for: url)
+        } else if uttype.conforms(to: .pdf) {
+            return pdfAspectRatio(for: url)
         }
         return nil
     }
@@ -278,5 +280,20 @@ actor ThumbnailService {
         } catch {
             return nil
         }
+    }
+
+    /// Read PDF page 1 dimensions from the media box (metadata-only, no rendering).
+    private func pdfAspectRatio(for url: URL) -> CGFloat? {
+        guard let document = CGPDFDocument(url as CFURL),
+              let page = document.page(at: 1) else { return nil }
+
+        let box = page.getBoxRect(.mediaBox)
+        guard box.height > 0 else { return nil }
+
+        let rotation = page.rotationAngle
+        if rotation == 90 || rotation == 270 {
+            return box.height / box.width
+        }
+        return box.width / box.height
     }
 }

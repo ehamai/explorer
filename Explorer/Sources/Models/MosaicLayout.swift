@@ -1,21 +1,21 @@
 import Foundation
 
-struct MosaicLayoutItem: Identifiable {
+struct MosaicLayoutItem: Identifiable, Equatable {
     let id: URL
     let width: CGFloat
     let height: CGFloat
     let aspectRatio: CGFloat
-    let isMedia: Bool
+    let hasThumbnail: Bool
 }
 
-struct MosaicRow: Identifiable {
+struct MosaicRow: Identifiable, Equatable {
     let id: Int
     let items: [MosaicLayoutItem]
     let height: CGFloat
 }
 
 func computeJustifiedRows(
-    items: [(id: URL, aspectRatio: CGFloat, isMedia: Bool)],
+    items: [(id: URL, aspectRatio: CGFloat, hasThumbnail: Bool)],
     containerWidth: CGFloat,
     targetRowHeight: CGFloat = 200,
     spacing: CGFloat = 2
@@ -23,12 +23,12 @@ func computeJustifiedRows(
     guard !items.isEmpty, containerWidth > 0 else { return [] }
 
     var rows: [MosaicRow] = []
-    var currentItems: [(id: URL, aspectRatio: CGFloat, isMedia: Bool)] = []
+    var currentItems: [(id: URL, aspectRatio: CGFloat, hasThumbnail: Bool)] = []
     var sumAspectRatios: CGFloat = 0
 
     for item in items {
-        let ar = item.isMedia ? max(item.aspectRatio, 0.1) : 1.0
-        currentItems.append((item.id, ar, item.isMedia))
+        let ar = item.hasThumbnail ? max(item.aspectRatio, 0.1) : 1.0
+        currentItems.append((item.id, ar, item.hasThumbnail))
         sumAspectRatios += ar
 
         let totalSpacing = spacing * CGFloat(currentItems.count - 1)
@@ -42,7 +42,7 @@ func computeJustifiedRows(
                     width: entry.aspectRatio * rowHeight,
                     height: rowHeight,
                     aspectRatio: entry.aspectRatio,
-                    isMedia: entry.isMedia
+                    hasThumbnail: entry.hasThumbnail
                 )
             }
             rows.append(MosaicRow(id: rows.count, items: layoutItems, height: rowHeight))
@@ -59,7 +59,7 @@ func computeJustifiedRows(
                 width: entry.aspectRatio * targetRowHeight,
                 height: targetRowHeight,
                 aspectRatio: entry.aspectRatio,
-                isMedia: entry.isMedia
+                hasThumbnail: entry.hasThumbnail
             )
         }
         rows.append(MosaicRow(id: rows.count, items: layoutItems, height: targetRowHeight))

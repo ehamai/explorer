@@ -58,6 +58,18 @@ final class TabManager {
         closeTab(id: activeTabID)
     }
 
+    func nextTab() {
+        guard let idx = tabs.firstIndex(where: { $0.id == activeTabID }) else { return }
+        let next = (idx + 1) % tabs.count
+        activeTabID = tabs[next].id
+    }
+
+    func previousTab() {
+        guard let idx = tabs.firstIndex(where: { $0.id == activeTabID }) else { return }
+        let prev = idx == 0 ? tabs.count - 1 : idx - 1
+        activeTabID = tabs[prev].id
+    }
+
     /// Reload any tabs that are currently showing the given directory
     func reloadTabs(showing url: URL) async {
         for tab in tabs where tab.navigationVM.currentURL == url {

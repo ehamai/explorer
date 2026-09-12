@@ -1,7 +1,7 @@
 # Helpers Layer
 
 ## Overview
-The Helpers layer contains utility functions for formatting file system data, keyboard/focus management for content views, and zoom gesture handling.
+The Helpers layer contains utility functions for formatting file system data, keyboard/focus management for content views, native file dragging, and zoom gesture handling.
 
 ## FormatHelpers (FormatHelpers.swift)
 
@@ -109,6 +109,36 @@ struct ContentFocusHelper: NSViewRepresentable
 1. Walk up from helper view's position in the NSView hierarchy
 2. Search each ancestor's subtree for a `KeyView` (from `KeyCaptureView`)
 3. Make the found view first responder via `window.makeFirstResponder()`
+
+---
+
+## FileDragSource (FileDragSource.swift)
+
+### Purpose
+NSViewRepresentable overlay that makes a SwiftUI cell a native AppKit drag source. SwiftUI's `.onDrag` can only vend a single `NSItemProvider`, so it cannot drag several files at once. FileDragSource starts an `NSDraggingSession` with one `NSDraggingItem` per URL, so AppKit stacks the drag images and draws a count badge, like Finder and `NSTableView`. Used by IconGridView and MosaicView.
+
+### Declaration
+```swift
+struct FileDragSource: NSViewRepresentable
+```
+
+### Parameters
+| Parameter | Type | Purpose |
+|-----------|------|---------|
+| urlsToDrag | () -> [URL] | URLs to drag, evaluated when the drag starts |
+| dragImage | (URL) -> NSImage | Drag image per URL (aspect-fit, capped at 128pt, centered under cursor) |
+| onMouseDown | (Int, NSEvent.ModifierFlags) -> Void | Left mouse-down with click count and modifiers |
+| onClick | (Int, NSEvent.ModifierFlags) -> Void | Left mouse-up when no drag started |
+
+### Inner Class: DragSourceView
+- Handles left-mouse events; `hitTest` returns `nil` for right/control-clicks, scrolls, and gestures so SwiftUI context menus, scrolling, and pinch-to-zoom keep working
+- Starts the drag after a 3pt threshold; `draggingFormation = .stack`
+- Each dragging item is an `NSPasteboardItem` with `.fileURL` data set eagerly (a lazily-provided `NSURL` writer made in-app SwiftUI drops lag by seconds)
+- Source operation mask: copy/move/generic within the app (drop targets perform the move), copy outside the app
+- `acceptsFirstMouse: true`
+
+### isEventOverDragSource(_:)
+Static helper that hit-tests the event's window to check whether a click landed on a `DragSourceView`. SwiftUI tap gestures on ancestor views still fire for clicks the overlay handles, so the background tap handlers in IconGridView and MosaicView (which clear the selection) call this and ignore clicks on cells.
 
 ---
 

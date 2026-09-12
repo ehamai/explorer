@@ -7,19 +7,31 @@ struct IconGridView: View {
     @Environment(ClipboardManager.self) private var clipboardManager
     @Environment(FavoritesManager.self) private var favoritesManager
     @Environment(SplitScreenManager.self) private var splitManager
+    @Environment(ThumbnailCache.self) private var thumbnailCache
     @Environment(\.openWindow) private var openWindow
 
     @State private var itemToRename: FileItem?
     @State private var renameName = ""
     @State private var showRenameAlert = false
-    @State private var lastClickItem: FileItem.ID?
-    @State private var lastClickTime: Date?
     @State private var dropTargetID: FileItem.ID?
     @State private var isBackgroundDropTarget = false
+    @State private var focusTrigger = 0
+    @State private var gridWidth: CGFloat = 0
 
     private let columns = [GridItem(.adaptive(minimum: 100), spacing: 16)]
 
+    /// Estimate column count from container width matching LazyVGrid adaptive layout
+    private var columnCount: Int {
+        guard gridWidth > 0 else { return 1 }
+        // Each column is at least 100pt wide with 16pt spacing + 16pt padding on each side
+        let available = gridWidth - 32 // account for .padding(16) on each side
+        let colWidth: CGFloat = 100 + 16 // minimum + spacing
+        return max(1, Int(available / colWidth))
+    }
+
     var body: some View {
+        ScrollViewReader { scrollProxy in
+        GeometryReader { geo in // lint:allow — needed to compute column count
         ScrollView {
             LazyVGrid(columns: columns, spacing: 16) {
                 ForEach(directoryVM.items) { item in
@@ -30,19 +42,17 @@ struct IconGridView: View {
                             isCut: isCut(item),
                             isDropTarget: dropTargetID == item.id
                         )
-                        .draggable(item.url)
+                        .id(item.id)
+                        .overlay { dragSource(for: item) }
+                        .contextMenu {
+                            fileContextMenu(for: item)
+                        }
                         .dropDestination(for: URL.self) { urls, _ in
                             guard !urls.contains(item.url) else { return false }
                             performMove(urls, to: item.url)
                             return true
                         } isTargeted: { isTargeted in
                             dropTargetID = isTargeted ? item.id : nil
-                        }
-                        .onTapGesture {
-                            handleClick(item)
-                        }
-                        .contextMenu {
-                            fileContextMenu(for: item)
                         }
                     } else {
                         IconCell(
@@ -51,10 +61,8 @@ struct IconGridView: View {
                             isCut: isCut(item),
                             isDropTarget: false
                         )
-                        .draggable(item.url)
-                        .onTapGesture {
-                            handleClick(item)
-                        }
+                        .id(item.id)
+                        .overlay { dragSource(for: item) }
                         .contextMenu {
                             fileContextMenu(for: item)
                         }
@@ -64,9 +72,20 @@ struct IconGridView: View {
             .padding(16)
         }
         .background(Color(nsColor: .controlBackgroundColor))
+        .background {
+            KeyCaptureView(onKeyDown: { keyCode in
+                handleKeyCode(keyCode)
+            })
+        }
+        .background {
+            ContentFocusHelper(focusTrigger: focusTrigger)
+        }
         .contentShape(Rectangle())
         .onTapGesture {
+            // Clicks on cells also reach this gesture; the cell overlay handles those
+            guard !FileDragSource.isEventOverDragSource(NSApp.currentEvent) else { return }
             directoryVM.selectedItems.removeAll()
+            focusTrigger += 1
         }
         .overlay {
             if isBackgroundDropTarget {
@@ -92,10 +111,22 @@ struct IconGridView: View {
                 Task { await directoryVM.createNewFolder(in: currentURL) }
             }
         }
-        .onKeyPress(.return) {
-            openSelectedItems()
-            return .handled
+        .onChange(of: geo.size.width, initial: true) { _, newWidth in
+            gridWidth = newWidth
         }
+        .onChange(of: directoryVM.selectedItems) { _, newSelection in
+            if let selectedID = newSelection.first {
+                scrollProxy.scrollTo(selectedID, anchor: nil)
+            }
+        }
+        .task {
+            try? await Task.sleep(for: .milliseconds(50))
+            if let selectedID = directoryVM.selectedItems.first {
+                scrollProxy.scrollTo(selectedID, anchor: nil)
+            }
+        }
+        } // geo
+        } // ScrollViewReader
         .alert("Rename", isPresented: $showRenameAlert) {
             TextField("Name", text: $renameName)
             Button("Cancel", role: .cancel) { }
@@ -106,6 +137,21 @@ struct IconGridView: View {
             if let item = itemToRename {
                 Text("Enter a new name for \"\(item.name)\"")
             }
+        }
+    }
+
+    // MARK: - Keyboard Handling
+
+    private func handleKeyCode(_ keyCode: UInt16) -> Bool {
+        switch keyCode {
+        case 36: // Return
+            openSelectedItems()
+            return true
+        case 123: directoryVM.navigateGridSelection(direction: .left, columnCount: columnCount); return true
+        case 124: directoryVM.navigateGridSelection(direction: .right, columnCount: columnCount); return true
+        case 125: directoryVM.navigateGridSelection(direction: .down, columnCount: columnCount); return true
+        case 126: directoryVM.navigateGridSelection(direction: .up, columnCount: columnCount); return true
+        default: return false
         }
     }
 
@@ -174,31 +220,33 @@ struct IconGridView: View {
 
     // MARK: - Actions
 
-    private func handleClick(_ item: FileItem) {
-        let now = Date()
-
-        // Detect double-click: same item clicked within 0.4s
-        if let lastItem = lastClickItem, let lastTime = lastClickTime,
-           lastItem == item.id, now.timeIntervalSince(lastTime) < 0.4 {
-            openItem(item)
-            lastClickItem = nil
-            lastClickTime = nil
-            return
-        }
-
-        // Single click — select
-        lastClickItem = item.id
-        lastClickTime = now
-
-        if NSEvent.modifierFlags.contains(.command) {
-            if directoryVM.selectedItems.contains(item.id) {
-                directoryVM.selectedItems.remove(item.id)
-            } else {
-                directoryVM.selectedItems.insert(item.id)
+    private func dragSource(for item: FileItem) -> FileDragSource {
+        FileDragSource(
+            urlsToDrag: { directoryVM.dragURLs(for: item) },
+            dragImage: { url in
+                thumbnailCache.get(for: url) ?? NSWorkspace.shared.icon(forFile: url.path)
+            },
+            onMouseDown: { clickCount, modifiers in
+                guard clickCount == 1 else { return }
+                directoryVM.handleMouseDown(
+                    on: item.id,
+                    command: modifiers.contains(.command),
+                    shift: modifiers.contains(.shift)
+                )
+                focusTrigger += 1
+            },
+            onClick: { clickCount, modifiers in
+                if clickCount == 2 {
+                    openItem(item)
+                } else if clickCount == 1 {
+                    directoryVM.handleClick(
+                        on: item.id,
+                        command: modifiers.contains(.command),
+                        shift: modifiers.contains(.shift)
+                    )
+                }
             }
-        } else {
-            directoryVM.selectedItems = [item.id]
-        }
+        )
     }
 
     private func openItem(_ item: FileItem) {
@@ -285,15 +333,28 @@ private struct IconCell: View {
     let isCut: Bool
     let isDropTarget: Bool
 
+    @Environment(ThumbnailCache.self) private var thumbnailCache
+    @Environment(ThumbnailLoader.self) private var thumbnailLoader
+
+    @State private var thumbnail: NSImage?
+
     var body: some View {
         VStack(spacing: 6) {
-            FileIconView(item: item, size: 64)
-                .overlay(alignment: .bottomTrailing) {
-                    if item.iCloudStatus != .local {
-                        ICloudStatusBadge(status: item.iCloudStatus)
-                            .padding(2)
-                    }
+            ZStack(alignment: .bottomTrailing) {
+                if let thumbnail {
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 64, height: 64)
+                } else {
+                    FileIconView(item: item, size: 64)
                 }
+
+                if item.iCloudStatus != .local {
+                    ICloudStatusBadge(status: item.iCloudStatus)
+                        .padding(2)
+                }
+            }
 
             Text(item.name)
                 .font(.callout)
@@ -314,5 +375,19 @@ private struct IconCell: View {
         )
         .opacity(isCut ? 0.4 : 1.0)
         .contentShape(Rectangle())
+        .task(id: item.url) {
+            guard MediaFileType.detect(from: item.url) == .pdf else { return }
+            if let cached = thumbnailCache.get(for: item.url) {
+                thumbnail = cached
+                return
+            }
+            let image = await thumbnailLoader.awaitThumbnail(
+                for: item.url,
+                modificationDate: item.dateModified
+            )
+            if !Task.isCancelled {
+                thumbnail = image
+            }
+        }
     }
 }

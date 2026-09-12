@@ -6,6 +6,7 @@ struct MosaicThumbnailView: View {
     let fileItem: FileItem
     let isSelected: Bool
     let isCut: Bool
+    var isDropTarget: Bool = false
 
     @Environment(ThumbnailCache.self) private var thumbnailCache
     @Environment(ThumbnailLoader.self) private var thumbnailLoader
@@ -16,7 +17,7 @@ struct MosaicThumbnailView: View {
 
     var body: some View {
         Group {
-            if layoutItem.isMedia {
+            if layoutItem.hasThumbnail {
                 mediaCell
             } else {
                 nonMediaCell
@@ -24,7 +25,14 @@ struct MosaicThumbnailView: View {
         }
         .opacity(isCut ? 0.4 : 1.0)
         .overlay {
-            if isSelected {
+            if isDropTarget {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.accentColor.opacity(0.3))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 2)
+                            .strokeBorder(Color.accentColor, lineWidth: 2)
+                    }
+            } else if isSelected {
                 RoundedRectangle(cornerRadius: 2)
                     .strokeBorder(Color.accentColor, lineWidth: 3)
             }
@@ -36,8 +44,10 @@ struct MosaicThumbnailView: View {
 
     @ViewBuilder
     private var mediaCell: some View {
-        ZStack(alignment: .bottomTrailing) {
-            Color.black
+        let isPDF = MediaFileType.detect(from: fileItem.url) == .pdf
+        let mediaType = MediaFileType.detect(from: fileItem.url)
+        ZStack {
+            isPDF ? Color(nsColor: .controlBackgroundColor) : Color.black
 
             if let thumbnail {
                 Image(nsImage: thumbnail)
@@ -55,13 +65,40 @@ struct MosaicThumbnailView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
-            // Video badge
-            if MediaFileType.detect(from: fileItem.url) == .video {
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: min(28, layoutItem.height * 0.15)))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.5), radius: 3, y: 1)
-                    .padding(6)
+            // Bottom overlay for badges and date (non-media only)
+            VStack {
+                Spacer()
+                HStack(alignment: .bottom) {
+                    // Show date only for PDFs (not images/videos)
+                    if !mediaType.isMedia {
+                        Text(FormatHelpers.formatDate(fileItem.dateModified))
+                            .font(.caption2)
+                            .foregroundStyle(.white)
+                            .shadow(color: .black.opacity(0.6), radius: 2, y: 1)
+                            .padding(.leading, 6)
+                            .padding(.bottom, 6)
+                    }
+
+                    Spacer()
+
+                    if mediaType == .video {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: min(28, layoutItem.height * 0.15)))
+                            .foregroundStyle(.white)
+                            .shadow(color: .black.opacity(0.5), radius: 3, y: 1)
+                            .padding(.trailing, 6)
+                            .padding(.bottom, 6)
+                    }
+
+                    if mediaType == .pdf {
+                        Image(systemName: "doc.text.fill")
+                            .font(.system(size: min(20, layoutItem.height * 0.12)))
+                            .foregroundStyle(.white)
+                            .shadow(color: .black.opacity(0.5), radius: 3, y: 1)
+                            .padding(.trailing, 6)
+                            .padding(.bottom, 6)
+                    }
+                }
             }
         }
         .task(id: fileItem.url) {
@@ -99,12 +136,12 @@ struct MosaicThumbnailView: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
-            } else {
-                Text(FormatHelpers.formatDate(fileItem.dateModified))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
             }
+
+            Text(FormatHelpers.formatDate(fileItem.dateModified))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
             Spacer()
         }
         .frame(width: layoutItem.width, height: layoutItem.height)

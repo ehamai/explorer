@@ -9,7 +9,18 @@ final class DirectoryViewModel {
 
     private(set) var items: [FileItem] = []
     private(set) var allItems: [FileItem] = []
-    var selectedItems: Set<FileItem.ID> = []
+    var selectedItems: Set<FileItem.ID> = [] {
+        didSet {
+            // A single selection (click, arrow keys) becomes the shift-click anchor
+            if selectedItems.count == 1 {
+                selectionAnchor = selectedItems.first
+            } else if selectedItems.isEmpty {
+                selectionAnchor = nil
+            }
+        }
+    }
+    /// Item that shift-click ranges extend from.
+    private(set) var selectionAnchor: FileItem.ID?
     var sortDescriptor: FileSortDescriptor = FileSortDescriptor(field: .name, order: .ascending) {
         didSet { applyFilter() }
     }
@@ -59,11 +70,11 @@ final class DirectoryViewModel {
             mosaicRows = []
             return
         }
-        let layoutItems: [(id: URL, aspectRatio: CGFloat, isMedia: Bool)] = items.map { item in
+        let layoutItems: [(id: URL, aspectRatio: CGFloat, hasThumbnail: Bool)] = items.map { item in
             let mediaType = MediaFileType.detect(from: item.url)
-            let isMedia = mediaType.isMedia
-            let ar = aspectRatios[item.url] ?? (isMedia ? 1.0 : 1.0)
-            return (id: item.url, aspectRatio: ar, isMedia: isMedia)
+            let hasThumbnail = mediaType.hasThumbnail
+            let ar = aspectRatios[item.url] ?? 1.0
+            return (id: item.url, aspectRatio: ar, hasThumbnail: hasThumbnail)
         }
         mosaicRows = computeJustifiedRows(
             items: layoutItems,
@@ -141,6 +152,38 @@ final class DirectoryViewModel {
         }
 
         selectedItems = [mosaicRows[targetRow].items[targetCol].id]
+    }
+
+    // MARK: - Grid Keyboard Navigation
+
+    func navigateGridSelection(direction: MosaicNavDirection, columnCount: Int) {
+        guard !items.isEmpty, columnCount > 0 else { return }
+
+        let selectedID = selectedItems.first
+
+        guard let selectedID,
+              let currentIndex = items.firstIndex(where: { $0.id == selectedID }) else {
+            // Nothing selected — select first item
+            if let first = items.first {
+                selectedItems = [first.id]
+            }
+            return
+        }
+
+        let targetIndex: Int
+        switch direction {
+        case .left:
+            targetIndex = currentIndex - 1
+        case .right:
+            targetIndex = currentIndex + 1
+        case .up:
+            targetIndex = currentIndex - columnCount
+        case .down:
+            targetIndex = currentIndex + columnCount
+        }
+
+        guard targetIndex >= 0, targetIndex < items.count else { return }
+        selectedItems = [items[targetIndex].id]
     }
 
     // MARK: - Computed Properties
@@ -298,6 +341,55 @@ final class DirectoryViewModel {
     /// Clear the selection.
     func clearSelection() {
         selectedItems.removeAll()
+    }
+
+    /// URLs to drag when a drag starts on `item`: the whole selection if the item
+    /// is part of it, otherwise just the item.
+    func dragURLs(for item: FileItem) -> [URL] {
+        selectedItems.contains(item.id) ? selectedURLs : [item.url]
+    }
+
+    /// Finder-style mouse-down selection.
+    /// - Shift: select the range from the anchor to the item (Command+Shift adds it).
+    /// - Command: toggle the item; an added item becomes the anchor.
+    /// - Neither: pressing an unselected item selects only it; pressing a selected
+    ///   item keeps the selection so a subsequent drag carries every selected file.
+    func handleMouseDown(on id: FileItem.ID, command: Bool, shift: Bool) {
+        if shift {
+            guard let range = selectionRange(to: id) else {
+                selectedItems = [id]
+                return
+            }
+            if command {
+                selectedItems.formUnion(range)
+            } else {
+                selectedItems = range
+            }
+        } else if command {
+            if selectedItems.contains(id) {
+                selectedItems.remove(id)
+            } else {
+                selectedItems.insert(id)
+                selectionAnchor = id
+            }
+        } else if !selectedItems.contains(id) {
+            selectedItems = [id]
+        }
+    }
+
+    /// Mouse-up without a drag: a plain click on an item narrows the selection to it.
+    func handleClick(on id: FileItem.ID, command: Bool, shift: Bool) {
+        guard !command, !shift else { return }
+        selectedItems = [id]
+    }
+
+    /// IDs of visible items between the anchor and `id` (inclusive), in display order.
+    private func selectionRange(to id: FileItem.ID) -> Set<FileItem.ID>? {
+        guard let anchor = selectionAnchor,
+              let anchorIndex = items.firstIndex(where: { $0.id == anchor }),
+              let targetIndex = items.firstIndex(where: { $0.id == id }) else { return nil }
+        let bounds = min(anchorIndex, targetIndex)...max(anchorIndex, targetIndex)
+        return Set(items[bounds].map(\.id))
     }
 
     // MARK: - File Operations

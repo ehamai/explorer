@@ -14,84 +14,51 @@ struct MosaicView: View {
     @State private var itemToRename: FileItem?
     @State private var renameName = ""
     @State private var showRenameAlert = false
-    @State private var lastClickItem: FileItem.ID?
-    @State private var lastClickTime: Date?
+    @State private var dropTargetID: FileItem.ID?
     @State private var isBackgroundDropTarget = false
+    @State private var focusTrigger = 0
 
     var body: some View {
         @Bindable var directoryVM = directoryVM
         GeometryReader { geo in // lint:allow — required for justified row layout
-            ScrollView {
-                LazyVStack(spacing: 2) {
-                    ForEach(directoryVM.mosaicRows) { row in
-                        HStack(spacing: 2) {
-                            ForEach(row.items) { layoutItem in
-                                if let fileItem = itemLookup(layoutItem.id) {
-                                    MosaicThumbnailView(
-                                        layoutItem: layoutItem,
-                                        fileItem: fileItem,
-                                        isSelected: directoryVM.selectedItems.contains(fileItem.id),
-                                        isCut: isCut(fileItem)
-                                    )
-                                    .frame(width: layoutItem.width, height: layoutItem.height)
-                                    .clipped()
-                                    .draggable(fileItem.url)
-                                    .onTapGesture { handleClick(fileItem) }
-                                    .contextMenu { fileContextMenu(for: fileItem) }
-                                }
-                            }
-                        }
+            ScrollViewReader { scrollProxy in
+                mosaicScrollContent
+                    .modifier(MosaicInteractionModifiers(
+                        directoryVM: directoryVM,
+                        focusTrigger: $focusTrigger,
+                        isBackgroundDropTarget: $isBackgroundDropTarget,
+                        onKeyDown: handleKeyCode,
+                        onPaste: performPaste,
+                        onNewFolder: {
+                            let url = navigationVM.currentURL
+                            Task { await directoryVM.createNewFolder(in: url) }
+                        },
+                        hasPendingPaste: clipboardManager.hasPendingOperation,
+                        onDrop: performMoveToCurrentDir
+                    ))
+                    .pinchToZoom($directoryVM.mosaicZoom, range: DirectoryViewModel.mosaicZoomRange)
+                    .onChange(of: geo.size.width, initial: true) { _, newWidth in
+                        directoryVM.containerWidth = newWidth - 4
                     }
-                }
-                .padding(2)
-                .animation(.easeInOut(duration: 0.2), value: directoryVM.mosaicZoom)
-            }
-            .background(Color(nsColor: .controlBackgroundColor))
-            .background {
-                KeyCaptureView(onKeyDown: { keyCode in
-                    handleKeyCode(keyCode)
-                })
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                directoryVM.selectedItems.removeAll()
-            }
-            .overlay {
-                if isBackgroundDropTarget {
-                    RoundedRectangle(cornerRadius: 6)
-                        .strokeBorder(Color.accentColor, lineWidth: 2)
-                        .padding(2)
-                        .allowsHitTesting(false)
-                }
-            }
-            .dropDestination(for: URL.self) { urls, _ in
-                performMoveToCurrentDir(urls)
-            } isTargeted: { targeted in
-                isBackgroundDropTarget = targeted
-            }
-            .contextMenu {
-                Button("Paste") { performPaste() }
-                .disabled(!clipboardManager.hasPendingOperation)
-
-                Divider()
-
-                Button("New Folder") {
-                    let currentURL = navigationVM.currentURL
-                    Task { await directoryVM.createNewFolder(in: currentURL) }
-                }
-            }
-            .pinchToZoom($directoryVM.mosaicZoom, range: DirectoryViewModel.mosaicZoomRange)
-            .onChange(of: geo.size.width, initial: true) { _, newWidth in
-                directoryVM.containerWidth = newWidth - 4
-            }
-            .onChange(of: directoryVM.items) {
-                loadAspectRatiosForVisibleItems()
-            }
-            .onAppear {
-                loadAspectRatiosForVisibleItems()
-            }
-            .onDisappear {
-                thumbnailLoader.cancelAll()
+                    .onChange(of: directoryVM.items) {
+                        loadAspectRatiosForVisibleItems()
+                    }
+                    .onAppear {
+                        loadAspectRatiosForVisibleItems()
+                    }
+                    .task {
+                        try? await Task.sleep(for: .milliseconds(100))
+                        scrollToSelection(scrollProxy)
+                    }
+                    .onDisappear {
+                        thumbnailLoader.cancelAll()
+                    }
+                    .onChange(of: directoryVM.mosaicRows) {
+                        scrollToSelection(scrollProxy)
+                    }
+                    .onChange(of: directoryVM.selectedItems) { _, _ in
+                        scrollToSelection(scrollProxy)
+                    }
             }
         }
         .alert("Rename", isPresented: $showRenameAlert) {
@@ -105,6 +72,83 @@ struct MosaicView: View {
         }
     }
 
+    // MARK: - Scroll Content
+
+    private var mosaicScrollContent: some View {
+        ScrollView {
+            LazyVStack(spacing: 2) {
+                ForEach(directoryVM.mosaicRows) { row in
+                    HStack(spacing: 2) {
+                        ForEach(row.items) { layoutItem in
+                            if let fileItem = itemLookup(layoutItem.id) {
+                                mosaicCell(layoutItem: layoutItem, fileItem: fileItem)
+                            }
+                        }
+                    }
+                    .id(row.id)
+                }
+            }
+            .padding(2)
+            .animation(.easeInOut(duration: 0.2), value: directoryVM.mosaicZoom)
+        }
+    }
+
+    @ViewBuilder
+    private func mosaicCell(layoutItem: MosaicLayoutItem, fileItem: FileItem) -> some View {
+        let cell = MosaicThumbnailView(
+            layoutItem: layoutItem,
+            fileItem: fileItem,
+            isSelected: directoryVM.selectedItems.contains(fileItem.id),
+            isCut: isCut(fileItem),
+            isDropTarget: dropTargetID == fileItem.id
+        )
+        .frame(width: layoutItem.width, height: layoutItem.height)
+        .clipped()
+        .overlay { dragSource(for: fileItem) }
+        .contextMenu { fileContextMenu(for: fileItem) }
+
+        if fileItem.isDirectory {
+            cell.dropDestination(for: URL.self) { urls, _ in
+                guard !urls.contains(fileItem.url) else { return false }
+                performMove(urls, to: fileItem.url)
+                return true
+            } isTargeted: { isTargeted in
+                dropTargetID = isTargeted ? fileItem.id : nil
+            }
+        } else {
+            cell
+        }
+    }
+
+    private func dragSource(for item: FileItem) -> FileDragSource {
+        FileDragSource(
+            urlsToDrag: { directoryVM.dragURLs(for: item) },
+            dragImage: { url in
+                thumbnailCache.get(for: url) ?? NSWorkspace.shared.icon(forFile: url.path)
+            },
+            onMouseDown: { clickCount, modifiers in
+                guard clickCount == 1 else { return }
+                directoryVM.handleMouseDown(
+                    on: item.id,
+                    command: modifiers.contains(.command),
+                    shift: modifiers.contains(.shift)
+                )
+                focusTrigger += 1
+            },
+            onClick: { clickCount, modifiers in
+                if clickCount == 2 {
+                    openItem(item)
+                } else if clickCount == 1 {
+                    directoryVM.handleClick(
+                        on: item.id,
+                        command: modifiers.contains(.command),
+                        shift: modifiers.contains(.shift)
+                    )
+                }
+            }
+        )
+    }
+
     // MARK: - Helpers
 
     private func itemLookup(_ id: URL) -> FileItem? {
@@ -113,6 +157,14 @@ struct MosaicView: View {
 
     private func loadAspectRatiosForVisibleItems() {
         thumbnailLoader.loadAspectRatios(for: directoryVM.items, into: directoryVM)
+    }
+
+    private func scrollToSelection(_ scrollProxy: ScrollViewProxy) {
+        guard let selectedID = directoryVM.selectedItems.first,
+              let row = directoryVM.mosaicRows.first(where: { row in
+                  row.items.contains { $0.id == selectedID }
+              }) else { return }
+        scrollProxy.scrollTo(row.id, anchor: nil)
     }
 
     // MARK: - Keyboard Handling
@@ -192,30 +244,6 @@ struct MosaicView: View {
 
     // MARK: - Actions
 
-    private func handleClick(_ item: FileItem) {
-        let now = Date()
-        if let lastItem = lastClickItem, let lastTime = lastClickTime,
-           lastItem == item.id, now.timeIntervalSince(lastTime) < 0.4 {
-            openItem(item)
-            lastClickItem = nil
-            lastClickTime = nil
-            return
-        }
-
-        lastClickItem = item.id
-        lastClickTime = now
-
-        if NSEvent.modifierFlags.contains(.command) {
-            if directoryVM.selectedItems.contains(item.id) {
-                directoryVM.selectedItems.remove(item.id)
-            } else {
-                directoryVM.selectedItems.insert(item.id)
-            }
-        } else {
-            directoryVM.selectedItems = [item.id]
-        }
-    }
-
     private func openItem(_ item: FileItem) {
         if item.isDirectory {
             navigationVM.navigate(to: item.url)
@@ -257,6 +285,17 @@ struct MosaicView: View {
         }
     }
 
+    private func performMove(_ urls: [URL], to destination: URL) {
+        let validURLs = FileMoveService.validURLsForFolderDrop(urls, destination: destination)
+        guard !validURLs.isEmpty else { return }
+        let currentURL = navigationVM.currentURL
+        FileMoveService.moveItems(validURLs, to: destination)
+        Task {
+            await directoryVM.loadDirectory(url: currentURL)
+            await splitManager.reloadAllPanes(showing: destination)
+        }
+    }
+
     private func performMoveToCurrentDir(_ urls: [URL]) -> Bool {
         let destination = navigationVM.currentURL
         let validURLs = FileMoveService.validURLsForBackgroundDrop(urls, destination: destination)
@@ -269,5 +308,59 @@ struct MosaicView: View {
             }
         }
         return true
+    }
+}
+
+// MARK: - Interaction Modifiers
+
+private struct MosaicInteractionModifiers: ViewModifier {
+    let directoryVM: DirectoryViewModel
+    @Binding var focusTrigger: Int
+    @Binding var isBackgroundDropTarget: Bool
+    let onKeyDown: (UInt16) -> Bool
+    let onPaste: () -> Void
+    let onNewFolder: () -> Void
+    let hasPendingPaste: Bool
+    let onDrop: ([URL]) -> Bool
+
+    func body(content: Content) -> some View {
+        content
+            .background(Color(nsColor: .controlBackgroundColor))
+            .background {
+                KeyCaptureView(onKeyDown: { keyCode in
+                    onKeyDown(keyCode)
+                })
+            }
+            .background {
+                ContentFocusHelper(focusTrigger: focusTrigger)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                // Clicks on cells also reach this gesture; the cell overlay handles those
+                guard !FileDragSource.isEventOverDragSource(NSApp.currentEvent) else { return }
+                directoryVM.selectedItems.removeAll()
+                focusTrigger += 1
+            }
+            .overlay {
+                if isBackgroundDropTarget {
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(Color.accentColor, lineWidth: 2)
+                        .padding(2)
+                        .allowsHitTesting(false)
+                }
+            }
+            .dropDestination(for: URL.self) { urls, _ in
+                onDrop(urls)
+            } isTargeted: { targeted in
+                isBackgroundDropTarget = targeted
+            }
+            .contextMenu {
+                Button("Paste") { onPaste() }
+                    .disabled(!hasPendingPaste)
+
+                Divider()
+
+                Button("New Folder") { onNewFolder() }
+            }
     }
 }

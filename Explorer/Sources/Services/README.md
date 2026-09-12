@@ -504,7 +504,7 @@ Primary entry point. Checks disk cache → generates → saves to disk → retur
 Throwing convenience used by `ThumbnailLoader`. Wraps `loadThumbnail` and throws `ThumbnailError.generationFailed` on failure.
 
 #### aspectRatio(for:) async -> CGFloat?
-Returns width/height ratio using metadata-only reads (no pixel decode). Caches results in memory.
+Returns width/height ratio using metadata-only reads (no pixel decode). Supports images (CGImageSource metadata with EXIF orientation), videos (AVAsset track dimensions), and PDFs (CGPDFDocument page 1 mediaBox with rotation). Caches results in memory.
 
 ### Disk Cache
 - **Location**: `~/Library/Caches/<BundleID>/Thumbnails/`
